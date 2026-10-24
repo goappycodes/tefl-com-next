@@ -1,6 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { SEARCH_SEGMENT } from "@/lib/render";
+import {
+  AFF_CAMPAIGN_COOKIE,
+  AFF_CAMPAIGN_PARAM,
+  AFF_REF_COOKIE,
+  AFF_REF_PARAM,
+  ATTRIBUTION_MAX_AGE,
+  AWIN_COOKIES,
+  sanitizeKey,
+  sharedCookieDomain,
+} from "@/lib/attribution";
+import { encodeQuerySegment, QUERY_SEGMENT, renderQuery } from "@/lib/render";
 import { INDEXABLE_HOSTS } from "@/lib/site";
 import { WP_ORIGIN, WP_OWNED_PATH, WP_OWNED_QUERY } from "@/lib/wp";
 
@@ -8,26 +18,57 @@ import { WP_ORIGIN, WP_OWNED_PATH, WP_OWNED_QUERY } from "@/lib/wp";
  * Edge routing in front of the catch-all WordPress route.
  *
  * 1. Hand-over to WordPress. Commerce, account, admin, assets and feeds
- *    (/cart/, /checkout/, /my-account/, /product/…, /wp-*, ?add-to-cart=…)
- *    belong to WordPress — redirect them to WP_ORIGIN with the same path and
- *    query (geo folder included). After the domain switch these paths are
- *    proxied to WordPress at the CDN, so they never reach Next at all.
+ *    (/cart/, /checkout/, /my-account/, /product/…, /wp-*) and query actions
+ *    that make WordPress do something on a page view (?add-to-cart=,
+ *    ?coupon-code=, ?preview=…) belong to WordPress — redirect them to WP_ORIGIN
+ *    with the same path and query (geo folder included). After the domain switch
+ *    these are routed to WordPress at the CDN, so they never reach Next at all.
  *
- * 2. Search. WordPress search lives at "/?s=…" (and "/gb/?s=…"). A query
- *    string would make the catch-all page dynamic, so rewrite it to the path
- *    "/__search/<query>/" that the route decodes back — searches then cache
- *    per query like any page.
+ * 2. Query renders. The few params WordPress reads while rendering a page
+ *    (search "/?s=", the course recommender, podcast paging … — see
+ *    RENDER_QUERY_PARAMS) are rewritten to "/<cc>/__q/<query>/<path>/", which
+ *    the route decodes back — those pages then cache per query like any page.
+ *    Any other query string (utm_*, gclid, ref …) keeps the plain cached page.
  *
- * 3. Noindex everything that isn't the production domain (staging, Vercel
+ * 3. Attribution (lib/attribution.ts): `?ref=` / `?campaign=` are kept in
+ *    first-party cookies for the hand-over links, and `?awc=` / `?source=` get
+ *    the same cookies the Awin plugin would have set in PHP.
+ *
+ * 4. Noindex everything that isn't the production domain (staging, Vercel
  *    previews) with X-Robots-Tag — gated by HOSTNAME, so it can never deindex
  *    the live site.
  */
 const WP_HOST = new URL(WP_ORIGIN).host;
 const COUNTRY_PREFIX = /^\/(gb|za|nl|ca|it|fr)(?=\/|$)/;
 
-function withRobots(res: NextResponse, host: string): NextResponse {
-  if (!INDEXABLE_HOSTS.has(host)) res.headers.set("X-Robots-Tag", "noindex, nofollow");
+function captureAttribution(req: NextRequest, res: NextResponse, host: string): NextResponse {
+  const params = req.nextUrl.searchParams;
+
+  const firstParty = { path: "/", maxAge: ATTRIBUTION_MAX_AGE, httpOnly: false, sameSite: "lax" as const };
+  const ref = params.get(AFF_REF_PARAM);
+  const campaign = params.get(AFF_CAMPAIGN_PARAM);
+  if (ref) res.cookies.set(AFF_REF_COOKIE, ref.slice(0, 64), firstParty);
+  if (campaign) res.cookies.set(AFF_CAMPAIGN_COOKIE, campaign.slice(0, 64), firstParty);
+
+  // Mirrors awin_process_url_params(): setcookie(name, sanitize_key(v), +30d,
+  // COOKIEPATH, <home host>, is_ssl(), httponly).
+  for (const [param, cookie] of Object.entries(AWIN_COOKIES)) {
+    const value = sanitizeKey(params.get(param) ?? "");
+    if (!value) continue;
+    res.cookies.set(cookie, value, {
+      path: "/",
+      maxAge: ATTRIBUTION_MAX_AGE,
+      httpOnly: true,
+      secure: req.nextUrl.protocol === "https:",
+      domain: sharedCookieDomain(host, WP_HOST),
+    });
+  }
   return res;
+}
+
+function finish(req: NextRequest, res: NextResponse, host: string): NextResponse {
+  if (!INDEXABLE_HOSTS.has(host)) res.headers.set("X-Robots-Tag", "noindex, nofollow");
+  return captureAttribution(req, res, host);
 }
 
 export function middleware(req: NextRequest) {
@@ -41,15 +82,16 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(`${WP_ORIGIN}${url.pathname}${url.search}`, 307);
   }
 
-  // 2. "/?s=term" → "/__search/s%3Dterm/"
-  if (url.searchParams.has("s") && bare === "/") {
+  // 2. "/search-courses/?usertype=…&utm_source=…" → "/__q/<usertype=…>/search-courses/"
+  const query = renderQuery(url.searchParams);
+  if (query) {
     const rewritten = url.clone();
-    rewritten.pathname = `${prefix}/${SEARCH_SEGMENT}/${encodeURIComponent(url.search.slice(1))}/`;
+    rewritten.pathname = `${prefix}/${QUERY_SEGMENT}/${encodeQuerySegment(query)}${bare.endsWith("/") ? bare : `${bare}/`}`;
     rewritten.search = "";
-    return withRobots(NextResponse.rewrite(rewritten), host);
+    return finish(req, NextResponse.rewrite(rewritten), host);
   }
 
-  return withRobots(NextResponse.next(), host);
+  return finish(req, NextResponse.next(), host);
 }
 
 export const config = {

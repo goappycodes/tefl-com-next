@@ -50,7 +50,7 @@ export type RenderResult = RenderedPage | RenderedRedirect;
 
 /** Paths whose content lists other posts — revalidated whenever any post changes. */
 const LISTING =
-  /^\/((gb|za|nl|ca|it|fr)\/)?(|blog\/.*|category\/.*|tag\/.*|author\/.*|tefl-courses-overview\/|online-tefl-courses\/|specialist-tefl-courses\/|teach-english-abroad\/|tefl-internships\/|upcoming-tefl-webinars\/|tefl-shop\/|search-courses\/|__search\/.*)$/;
+  /^\/((gb|za|nl|ca|it|fr)\/)?(|blog\/.*|category\/.*|tag\/.*|author\/.*|tefl-courses-overview\/|online-tefl-courses\/|specialist-tefl-courses\/|teach-english-abroad\/|tefl-internships\/|upcoming-tefl-webinars\/|tefl-shop\/|search-courses\/|__q\/.*)$/;
 
 /** Ensure a leading and trailing slash (query strings are kept, unslashed). */
 export function normalisePath(path: string): string {
@@ -99,22 +99,89 @@ export async function getNotFoundPage(): Promise<RenderedPage | null> {
 }
 
 /* ------------------------------------------------------------------ *
- * Search. WordPress search lives at "/?s=term" (and "/gb/?s=term"). Query
- * strings would make the catch-all route dynamic, so middleware rewrites them
- * to a path — "/__search/<encoded query>/" — that the catch-all decodes back.
+ * Query-string renders. A few query parameters change the HTML WordPress
+ * renders server-side: search ("/?s=term", "/gb/?s=term"), the course
+ * recommender ("/search-courses/?usertype=…"), podcast paging ("?pg=2"), the
+ * timetable's timezone ("?offset=") … A query string would make the catch-all
+ * route dynamic, so middleware rewrites those params into a path segment —
+ * "/<cc>/__q/<encoded query>/<path>/" — that the catch-all decodes back. Each
+ * such URL then caches per query like any page.
+ *
+ * Every other parameter (utm_*, gclid, fbclid, ref, awc …) is read client-side
+ * or by middleware only, so those URLs keep the plain cached page.
  * ------------------------------------------------------------------ */
 
-export const SEARCH_SEGMENT = "__search";
+export const QUERY_SEGMENT = "__q";
 
-/** Segments → the WordPress path to render (search segments decoded back to a query). */
+/**
+ * Query params WordPress reads while rendering a front page (theme templates +
+ * search). An allowlist on purpose: an unknown param can never fan out the
+ * cache, it just gets the plain page — exactly as before this existed.
+ */
+export const RENDER_QUERY_PARAMS = [
+  "s", // WordPress / Relevanssi search
+  "post_type", // search scope
+  "paged", // ugly-permalink paging
+  "usertype", // search-courses-template.php — course recommender
+  "userpreference",
+  "userlevel",
+  "userqual",
+  "pg", // template-parts/podcast/section-podcast.php
+  "month", // Hope Foundation page
+  "offset", // includes/course_variation_timetable.php — timezone
+  "redesign", // includes/ti-blog-redesign.php — preview toggle
+] as const;
+
+/**
+ * The render-relevant part of a query string, params in a stable order, or ""
+ * when there is none. "?utm_source=x&s=tefl" → "s=tefl".
+ */
+export function renderQuery(search: URLSearchParams): string {
+  const out = new URLSearchParams();
+  for (const key of RENDER_QUERY_PARAMS) {
+    for (const value of search.getAll(key)) out.append(key, value);
+  }
+  return out.toString();
+}
+
+/**
+ * The query travels base64url-encoded: only [A-Za-z0-9_-], so it survives the
+ * rewrite and route-param decoding byte for byte (a search for "a&b" or "100%"
+ * stays intact). The query string itself is ASCII — URLSearchParams escapes the rest.
+ */
+export function encodeQuerySegment(query: string): string {
+  return btoa(query).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function decodeQuerySegment(segment: string): string | null {
+  try {
+    const b64 = segment.replace(/-/g, "+").replace(/_/g, "/");
+    return atob(b64 + "=".repeat((4 - (b64.length % 4)) % 4));
+  } catch {
+    return null;
+  }
+}
+
+/** decodeURIComponent that never throws (a stray "%" in a path). */
+function safeDecode(s: string): string {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+}
+
+/** Segments → the WordPress path to render (a query segment decoded back to a query string). */
 export function segmentsToWpPath(segments: string[]): { wpPath: string; cacheKey: string } {
-  const decoded = segments.map((s) => decodeURIComponent(s));
-  const i = decoded.indexOf(SEARCH_SEGMENT);
-  if (i !== -1 && i <= 1 && decoded.length === i + 2) {
+  const decoded = segments.map(safeDecode);
+  const i = decoded.indexOf(QUERY_SEGMENT);
+  const query = i !== -1 && i <= 1 && decoded.length >= i + 2 ? decodeQuerySegment(decoded[i + 1]) : null;
+  if (query) {
     const prefix = i === 1 ? `/${decoded[0]}` : "";
+    const path = normalisePath(`${prefix}/${decoded.slice(i + 2).join("/")}`);
     return {
-      wpPath: `${prefix}/?${decoded[i + 1]}`,
-      cacheKey: `${prefix}/${SEARCH_SEGMENT}/${segments[i + 1]}/`,
+      wpPath: `${path}?${query}`,
+      cacheKey: normalisePath(`/${decoded.join("/")}`),
     };
   }
   const path = normalisePath(`/${decoded.join("/")}`);

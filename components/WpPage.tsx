@@ -1,3 +1,4 @@
+import HandoverLinks from "@/components/HandoverLinks";
 import WpScripts from "@/components/WpScripts";
 import type { RenderedPage } from "@/lib/render";
 
@@ -42,6 +43,7 @@ export default function WpPage({ page }: { page: RenderedPage }) {
         dangerouslySetInnerHTML={{ __html: page.body }}
       />
       <WpScripts rootId={rootId} bodyClass={page.body_class} title={page.seo.title} />
+      <HandoverLinks />
     </>
   );
 }

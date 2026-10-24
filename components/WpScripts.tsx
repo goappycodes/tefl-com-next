@@ -18,9 +18,11 @@ import { useEffect } from "react";
  *     real ones already fired) so `$(window).on('load')` and
  *     DOMContentLoaded-wrapped inits fire once, as on live
  *
- * Tracking (GTM, gtag, Meta, Awin, PageSense, Ahrefs, Clarity…) only runs when
- * NEXT_PUBLIC_ENABLE_TRACKING=1 — so staging/preview traffic never pollutes the
- * live analytics or ad conversions. Production sets it at cutover.
+ * Tracking (GTM, gtag, Meta, Awin, PageSense, Ahrefs, Clarity, Apollo, and
+ * AffiliateWP's visit tracker, which writes visits into the live affiliate
+ * tables) only runs when NEXT_PUBLIC_ENABLE_TRACKING=1 — so staging/preview
+ * traffic never pollutes the live analytics, ad conversions or affiliate stats.
+ * Production sets it at cutover.
  *
  * A failing script never stops the rest; worst case a widget stays static.
  */
@@ -29,9 +31,9 @@ const TRACKING_ENABLED = process.env.NEXT_PUBLIC_ENABLE_TRACKING === "1";
 
 /** Hosts / inline fingerprints of tracking & ad-attribution scripts. */
 const TRACKING_SRC =
-  /googletagmanager\.com|google-analytics\.com|googleadservices\.com|doubleclick\.net|connect\.facebook\.net|pagesense\.io|dwin1\.com|analytics\.ahrefs\.com|clarity\.ms|hotjar\.com|snap\.licdn\.com|bat\.bing\.com|tiktok\.com\/i18n|static\.ads-twitter\.com|gtag-events\.js|duracelltomi-google-tag-manager|awin-advertiser-tracking|metorik|sourcebuster|order-attribution|ShareASale|shareasale/i;
+  /googletagmanager\.com|google-analytics\.com|googleadservices\.com|doubleclick\.net|connect\.facebook\.net|pagesense\.io|dwin1\.com|analytics\.ahrefs\.com|clarity\.ms|hotjar\.com|snap\.licdn\.com|bat\.bing\.com|tiktok\.com\/i18n|static\.ads-twitter\.com|gtag-events\.js|duracelltomi-google-tag-manager|awin-advertiser-tracking|metorik|sourcebuster|order-attribution|ShareASale|shareasale|apollo\.io|aplo-evnt\.com|affiliate-wp\/assets\/js\/tracking/i;
 const TRACKING_INLINE =
-  /googletagmanager\.com\/gtm\.js|gtag\(\s*['"]config|fbq\(\s*['"]init|connect\.facebook\.net|pagesense|dwin1\.com|clarity\.ms|hotjar|_linkedin_partner_id|analytics\.ahrefs\.com/i;
+  /googletagmanager\.com\/gtm\.js|gtag\(\s*['"]config|fbq\(\s*['"]init|connect\.facebook\.net|pagesense|dwin1\.com|clarity\.ms|hotjar|_linkedin_partner_id|analytics\.ahrefs\.com|assets\.apollo\.io/i;
 
 const EXTERNAL_TIMEOUT_MS = 12000;
 

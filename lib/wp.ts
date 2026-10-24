@@ -99,5 +99,15 @@ export const CHECKOUT_URL = `${WP_ORIGIN}/checkout/`;
 export const WP_OWNED_PATH =
   /^\/(cart|checkout|basket|my-account|user-account|product|product-category|shop|wp-admin|wp-content|wp-includes|wp-json|wp-login\.php|xmlrpc\.php|feed|comments|affiliate-area|affiliate-login|affiliate-registration|lms-sso|sso|order-received|order-pay)(\/|$|\?|\.)/i;
 
-/** Query parameters that are WooCommerce actions — always handled by WordPress. */
-export const WP_OWNED_QUERY = /(^|[?&])(add-to-cart|addtimetocart|wc-ajax|wc-api|add_to_cart|remove_item|undo_item)(=|&|$)/i;
+/**
+ * Query parameters that make WordPress DO something on a page view (PHP on
+ * init / wp_loaded / template_redirect), so the request must reach WordPress
+ * itself — a cached Next render would silently drop the action:
+ *   - WooCommerce cart actions (+ the theme's addtimetocart / empty_cart)
+ *   - Smart Coupons URL coupons (`?coupon-code=X` applies to the session)
+ *   - WCPBC's manual country switch (`?wcpbc-manual-country=GB`, sets the session)
+ *   - editor previews and shortlinks (`?preview=true`, `?p=123`, `?page_id=`)
+ *     and comment moderation links
+ */
+export const WP_OWNED_QUERY =
+  /(^|[?&])(add-to-cart|addtimetocart|wc-ajax|wc-api|add_to_cart|remove_item|undo_item|remove_coupon|empty_cart|download_file|coupon-code|wcpbc-manual-country|preview|preview_id|p|page_id|unapproved|replytocom)(=|&|$)/i;
