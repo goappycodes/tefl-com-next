@@ -133,9 +133,11 @@ See `.env.example`: `NEXT_PUBLIC_WP_ORIGIN`, `NEXT_PUBLIC_SITE_ORIGIN`,
   `WpPage.tsx`). Clean fix — Forge → site → Edit Nginx Configuration:
   `location ~* \.(woff2?|ttf|otf|eot)$ { add_header Access-Control-Allow-Origin "*"; }`
   then purge Cloudflare.
-- **Page weight.** Passthrough pages carry the HTML twice (document + RSC
-  payload): ~240 KB gzip vs ~85 KB on live for the homepage. Shrinks as
-  templates move to native React.
+- **Page weight.** Pages carry their markup twice (document + RSC payload —
+  true of any App Router page, native React included): ~240 KB gzip vs ~85 KB
+  on live for the homepage. The big lever is the ~160 KB of inline theme CSS
+  (Astra dynamic CSS, plugin inline styles) repeated on every page: moving it
+  into cached static stylesheets is the planned optimisation.
 
 ## Development
 
