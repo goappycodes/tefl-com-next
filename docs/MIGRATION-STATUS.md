@@ -25,7 +25,8 @@ reuse TEFL.ie's components and lessons later.
 | Change | Where | State |
 |---|---|---|
 | `TEFL_ISR_SECRET` (random 64-hex, same value as `ISRSECRET` in `.env.local`) | `wp-config.php`, above "stop editing". Backup: `~/wp-config.php.bak-20261024-085845-isrsecret` | Set; OPcache reset; site verified 200 |
-| `tefl-isr-revalidate.php` mu-plugin | `wp-content/mu-plugins/` (source: `wordpress/tefl-isr-revalidate.php`) | Deployed **inert**: sends nothing until `TEFL_ISR_BASE_URL` is defined. `wp tefl isr pages` confirms it's not configured |
+| `tefl-isr-revalidate.php` mu-plugin | `wp-content/mu-plugins/` (source: `wordpress/tefl-isr-revalidate.php`) | **Active** against staging (see below) |
+| `TEFL_ISR_BASE_URL=https://next.teflinstitute.com` | `wp-config.php`, below `TEFL_ISR_SECRET`. Backup: `~/wp-config.php.bak-20261024-102532-isrbaseurl` | Set 2026-10-24; OPcache reset; live verified 200. `wp tefl isr pages` → `HTTP 200` (staging homepage `REVALIDATED`); `wp tefl isr p:/blog/` → `HTTP 200`. Change to `https://teflinstitute.com` at cutover |
 | Theme git snapshot | Server repo `wp-content/themes/teflinstitute`, commit `15c615b` (all live edits since Sep 2024) | Committed |
 
 The headless layer (`wp-content/themes/teflinstitute/headless/`) was already live and
@@ -119,13 +120,11 @@ fetch reaches WordPress through the Worker's `/wp-json/` rule.
 
 ### P0: stand up staging
 
-1. **Vercel project** for this repo (team `appycodes-demo`, alongside `tefl-ie-next`).
-   Env: `ISRSECRET` (same value as wp-config `TEFL_ISR_SECRET`, see `.env.local`),
-   `NEXT_PUBLIC_WP_ORIGIN=https://teflinstitute.com`,
-   `NEXT_PUBLIC_SITE_ORIGIN=https://teflinstitute.com`, no tracking flag. Domain
-   `next.teflinstitute.com`.
-2. **`TEFL_ISR_BASE_URL=https://next.teflinstitute.com`** in wp-config, then
-   `wp tefl isr pages`: expect `HTTP 200`.
+1. ~~**Vercel project** for this repo, domain `next.teflinstitute.com`.~~ Done:
+   staging is live (noindex, cart hand-over 307, revalidate endpoint 401 without the secret).
+2. ~~**`TEFL_ISR_BASE_URL=https://next.teflinstitute.com`** in wp-config, then
+   `wp tefl isr pages`: expect `HTTP 200`.~~ Done 2026-10-24 (see table above).
+   Still to confirm: a real editor save in wp-admin shows on staging within seconds.
 3. **reCAPTCHA v3**: add `next.teflinstitute.com` to the key's allowed domains
    (Google console), then submit one form of each kind.
 4. **Warm the cache** (`npm run warm-cache -- https://next.teflinstitute.com --all`,
