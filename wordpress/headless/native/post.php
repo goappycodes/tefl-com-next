@@ -1,12 +1,8 @@
 <?php
 /**
- * tefl/v1/post — data for the native React blog post template.
+ * Native template: single blog post (single-post-redesign.php).
  *
- * GET /<cc>/index.php?rest_route=/tefl/v1/post&path=/<cc>/blog/<slug>/
- *
- * Call it through the geo folder (as above, not /wp-json/): wp-config sets
- * SEO_LANG / WP_HOME from the request URI, so home_url(), permalinks and the
- * per-country ACF values (`get_cfvalue_by_country()`) match the folder.
+ * GET /<cc>/index.php?rest_route=/tefl/v1/native/post&path=/<cc>/blog/<slug>/&id=123
  *
  * Mirrors single-post-redesign.php + includes/ti-blog-redesign.php field for
  * field: every value the template computes is resolved here (ACF with its
@@ -15,8 +11,7 @@
  * (components/blog/BlogPost.tsx) reproduces the markup. URLs and HTML get the
  * same rewrites as tefl/v1/render, so links stay on the Next front.
  *
- * Returns 404 when the path isn't a published post rendered by the redesign
- * template; the Next route then falls back to the passthrough render.
+ * 404 when the post isn't rendered by the redesign template.
  *
  * @package TEFL Institute
  */
@@ -25,72 +20,26 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+tefl_native_register('post', 'tefl_native_post');
+
+// Legacy route used by the first deploy of the Next app (`tefl/v1/post?path=`).
+// Remove once every deployment calls native/post.
 add_action('rest_api_init', function () {
     register_rest_route(TEFL_HEADLESS_NS, '/post', array(
         'methods'             => 'GET',
-        'callback'            => 'tefl_headless_post',
         'permission_callback' => '__return_true',
-        'args'                => array(
-            'path' => array('required' => true, 'type' => 'string'),
-        ),
+        'args'                => array('path' => array('required' => true, 'type' => 'string')),
+        'callback'            => function (WP_REST_Request $request) {
+            return tefl_native_dispatch($request, 'post', 'tefl_native_post', array('singular' => true));
+        },
     ));
 });
 
-function tefl_headless_post(WP_REST_Request $request) {
-    $path = tefl_headless_normalise_path($request->get_param('path'));
-    if ($path === '' || strpos($path, '?') !== false) {
-        return tefl_headless_response(array('ok' => false, 'error' => 'bad_path'), 400);
+function tefl_native_post($pid, $ctx) {
+    if (get_post_type($pid) !== 'post' || !function_exists('ti_use_blog_redesign') || !ti_use_blog_redesign()) {
+        return null;
     }
-    list($country, $bare) = tefl_headless_split_country($path);
-
-    $id = url_to_postid(home_url($bare));
-    $p  = $id ? get_post($id) : null;
-    if (!$p || $p->post_type !== 'post' || $p->post_status !== 'publish' || post_password_required($p)) {
-        return tefl_headless_response(array('ok' => false, 'error' => 'not_found'), 404);
-    }
-
-    // Make this post the main query, as on the post's own page, so is_singular(),
-    // in_the_loop() / is_main_query() checks in the_content filters, the Yoast
-    // breadcrumb and the author template tags all resolve exactly as they do there.
-    global $wp_query, $wp_the_query;
-    $wp_query     = new WP_Query(array('p' => $id, 'post_type' => 'post', 'post_status' => 'publish'));
-    $wp_the_query = $wp_query;
-    if (!$wp_query->have_posts()) {
-        return tefl_headless_response(array('ok' => false, 'error' => 'not_found'), 404);
-    }
-    $wp_query->the_post();
-
-    if (!function_exists('ti_use_blog_redesign') || !ti_use_blog_redesign()) {
-        wp_reset_postdata();
-        return tefl_headless_response(array('ok' => false, 'error' => 'not_redesign'), 404);
-    }
-
-    $data = tefl_headless_post_data($id);
-    wp_reset_postdata();
-
-    $data['ok']      = true;
-    $data['path']    = $path;
-    $data['country'] = $country;
-    return tefl_headless_response($data);
-}
-
-/**
- * Complianz's cookie blocker over an HTML fragment. On a page it runs as an
- * output buffer (template_redirect), turning YouTube/Vimeo iframes and
- * third-party scripts into consent placeholders; a REST request never starts
- * that buffer, so fragments meant for the page get it applied here.
- *
- * Gated on the blocker's own settings rather than cmplz_can_run_cookie_blocker(),
- * which is false for REST requests by design.
- */
-function tefl_headless_cookie_block($html) {
-    if ($html === '' || !class_exists('COMPLIANZ') || empty(COMPLIANZ::$cookie_blocker) || !function_exists('cmplz_get_option')) {
-        return $html;
-    }
-    if (cmplz_get_option('enable_cookie_blocker') !== 'yes' || cmplz_get_option('safe_mode')) {
-        return $html;
-    }
-    return COMPLIANZ::$cookie_blocker->replace_tags($html);
+    return tefl_headless_post_data($pid);
 }
 
 /** Every value single-post-redesign.php renders, for the current post in the loop. */

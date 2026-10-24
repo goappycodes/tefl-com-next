@@ -7,7 +7,7 @@
  * (wordpress/headless/rest-post.php). The theme's interaction script is
  * replaced by the React pieces in BlogClient.tsx.
  */
-import type { BlogPostData } from "@/lib/post";
+import type { BlogPostData } from "./types";
 
 import { AuthorBio, BlogAnalytics, CopyLink, FaqList, ProgressBar, SalaryTicker } from "./BlogClient";
 import Icon from "./Icon";

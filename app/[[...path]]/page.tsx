@@ -1,10 +1,10 @@
 import { notFound, permanentRedirect, redirect } from "next/navigation";
 
-import BlogPost from "@/components/blog/BlogPost";
 import WpPage from "@/components/WpPage";
 import WpShell from "@/components/WpShell";
+import { getNativeData } from "@/lib/native/data";
+import { NATIVE_TEMPLATES } from "@/lib/native/registry";
 import { loadPage } from "@/lib/page-data";
-import { getBlogPost, isBlogPostPath } from "@/lib/post";
 import { segmentsToWpPath } from "@/lib/render";
 import { splitShell } from "@/lib/shell";
 
@@ -14,11 +14,11 @@ import { splitShell } from "@/lib/shell";
  * geo folder (/gb/, /za/, /nl/, /ca/, /it/, /fr/) — rendered from WordPress
  * with the exact same URL.
  *
- * Templates ported to React (phase 2) render their content natively inside the
- * page's WordPress shell (header, footer, scripts); everything else is the
- * passthrough render. A native template that can't be built for a URL (not
- * the expected post type, unexpected markup) falls back to the passthrough.
- *   - blog posts (/blog/<slug>/, every folder) → components/blog/BlogPost
+ * Templates ported to React (phase 2, lib/native/registry.tsx) render their
+ * content natively inside the page's WordPress shell (header, footer,
+ * scripts); everything else is the passthrough render. A native template
+ * that can't be built for a URL (WordPress says it isn't that template, or the
+ * shell's content slot is missing) falls back to the passthrough.
  *
  * On-demand ISR: nothing is prerendered at build (≈7,000 path × folder
  * combinations); each URL renders on its first request, is cached, and is
@@ -31,13 +31,8 @@ export function generateStaticParams() {
   return [];
 }
 
-/** Theme scripts a native template replaces (by <script id>). */
-const BLOG_REPLACES = ["ti-single-post-redesign-js"];
-
 export default async function CatchAllPage({ params }: { params: { path?: string[] } }) {
-  const { cacheKey } = segmentsToWpPath(params.path ?? []);
-  const blog = isBlogPostPath(cacheKey);
-  const [data, post] = await Promise.all([loadPage(params.path), blog ? getBlogPost(cacheKey) : null]);
+  const data = await loadPage(params.path);
   if (!data) notFound();
 
   if (!data.ok) {
@@ -46,14 +41,19 @@ export default async function CatchAllPage({ params }: { params: { path?: string
     redirect(data.location);
   }
 
-  if (post && data.status === 200) {
-    const shell = splitShell(data.body);
-    if (shell) {
-      return (
-        <WpShell page={data} shell={shell} replaceScripts={BLOG_REPLACES}>
-          <BlogPost post={post} />
-        </WpShell>
-      );
+  if (data.status === 200) {
+    const classes = new Set(data.body_class.split(/\s+/));
+    const native = NATIVE_TEMPLATES.find((t) => t.match(classes, data));
+    if (native) {
+      const { wpPath, cacheKey } = segmentsToWpPath(params.path ?? []);
+      const [content, shell] = [await getNativeData(native.endpoint, data, wpPath, cacheKey), splitShell(data.body)];
+      if (content && shell) {
+        return (
+          <WpShell page={data} shell={shell} replaceScripts={native.replaces}>
+            {native.render(content)}
+          </WpShell>
+        );
+      }
     }
   }
 

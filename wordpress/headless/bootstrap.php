@@ -37,7 +37,19 @@ require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/cors.php';
 require_once __DIR__ . '/rest-render.php';
 require_once __DIR__ . '/rest-routes.php';
-require_once __DIR__ . '/rest-post.php';
+
+/*
+ * Data endpoints for the native React templates (native/*.php, one per
+ * template, `tefl/v1/native/<name>`). Loaded for REST requests only, so a
+ * fault in one can never reach a page view. `_common.php` sorts first.
+ */
+$tefl_headless_uri = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '';
+if (strpos($tefl_headless_uri, '/wp-json/') !== false || strpos($tefl_headless_uri, 'rest_route=') !== false) {
+    foreach (glob(__DIR__ . '/native/*.php') ?: array() as $tefl_headless_file) {
+        require_once $tefl_headless_file;
+    }
+}
+unset($tefl_headless_uri, $tefl_headless_file);
 
 add_action('rest_api_init', function () {
     register_rest_route(TEFL_HEADLESS_NS, '/health', array(

@@ -67,12 +67,9 @@ head, GTM dataLayer, offer banners and footer stay exact per page while the
 header/footer wait their turn to be ported. If the endpoint 404s or the slot
 can't be found, the route falls back to the passthrough page.
 
-| Template | React | Data | Replaces theme script |
-|---|---|---|---|
-| Blog post (`single-post-redesign.php`) | `components/blog/` | `tefl/v1/post` (`wordpress/headless/rest-post.php`) | `ti-single-post-redesign-js` |
-
-Verify a port with a DOM diff of the content against live (same element tree,
-attributes and text): every blog post checked matched, US root and all six folders.
+Templates are listed in `lib/native/registry.tsx`; the porting recipe and the
+list of ported templates are in `docs/NATIVE-TEMPLATES.md`. Each port is checked
+with `node scripts/domdiff.mjs <path>…` (content slot vs live, 0 differences).
 
 ### Caching / cache-busting
 
