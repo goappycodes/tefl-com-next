@@ -59,6 +59,21 @@ remains the fallback for anything not yet ported. Country-aware JSON comes from
 `https://teflinstitute.com/<cc>/index.php?rest_route=/tefl/v1/...` (the folder
 sets `SEO_LANG`, so ACF translations apply).
 
+A ported template renders inside the page's own WordPress **shell**
+(`lib/shell.ts`, `components/WpShell.tsx`): the head, header, footer and
+scripts come from that URL's `tefl/v1/render` output, cut at the theme's
+`#content > .ast-container` slot, with the React content in between. So SEO
+head, GTM dataLayer, offer banners and footer stay exact per page while the
+header/footer wait their turn to be ported. If the endpoint 404s or the slot
+can't be found, the route falls back to the passthrough page.
+
+| Template | React | Data | Replaces theme script |
+|---|---|---|---|
+| Blog post (`single-post-redesign.php`) | `components/blog/` | `tefl/v1/post` (`wordpress/headless/rest-post.php`) | `ti-single-post-redesign-js` |
+
+Verify a port with a DOM diff of the content against live (same element tree,
+attributes and text): every blog post checked matched, US root and all six folders.
+
 ### Caching / cache-busting
 
 | Mechanism | Where |
@@ -95,8 +110,8 @@ app/[[...path]]/        catch-all route: layout (html/head/body), page, not-foun
 app/api/revalidate/     on-demand ISR endpoint
 app/api/sitemap/        Yoast sitemap + XSL proxy (rewrites in next.config.mjs)
 app/robots.txt/         WordPress robots.txt with front-origin sitemap URLs
-components/             WpHead, WpPage, WpScripts
-lib/                    wp.ts (origin, fetch, hand-over), render.ts, site.ts, countries.ts
+components/             WpHead, WpPage, WpShell, WpScripts; blog/ (native blog post)
+lib/                    wp.ts (origin, fetch, hand-over), render.ts, shell.ts, post.ts, site.ts, countries.ts
 middleware.ts           WP hand-over, search rewrite, noindex on non-prod hosts
 public/                 favicons, verification files, llms.txt, self-hosted icon fonts
 scripts/warm-cache.mjs  post-deploy ISR warmer

@@ -64,17 +64,22 @@ export function pageTag(path: string): string {
   return `p:${normalisePath(path)}`;
 }
 
+/** Cache tags for everything fetched to build the page at `cacheKey`. */
+export function pageTags(cacheKey: string): string[] {
+  const tags = ["pages", pageTag(cacheKey)];
+  if (LISTING.test(normalisePath(cacheKey))) tags.push("listing");
+  return tags;
+}
+
 /**
  * Fetch a rendered page. `null` = genuinely not found (→ notFound()); throws on
  * transient upstream failures so Next keeps serving the last-good page.
  */
 export async function getRenderedPage(path: string, cacheKey = path): Promise<RenderResult | null> {
   const p = normalisePath(path);
-  const tags = ["pages", pageTag(cacheKey)];
-  if (LISTING.test(normalisePath(cacheKey))) tags.push("listing");
   const data = await getRouteContent<RenderResult>(
     `/render?path=${encodeURIComponent(p)}`,
-    { tags, revalidate: isrRevalidate() },
+    { tags: pageTags(cacheKey), revalidate: isrRevalidate() },
   );
   if (!data) return null;
   if (data.ok) return data;

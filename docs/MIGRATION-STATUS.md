@@ -30,7 +30,22 @@ reuse TEFL.ie's components and lessons later.
 | Theme git snapshot | Server repo `wp-content/themes/teflinstitute`, commit `15c615b` (all live edits since Sep 2024) | Committed |
 
 The headless layer (`wp-content/themes/teflinstitute/headless/`) was already live and
-matches `wordpress/headless/` here (line endings only).
+matches `wordpress/headless/` here (line endings only). Added 2026-10-24:
+`rest-post.php` (`tefl/v1/post`, read-only) + its `require_once` in `bootstrap.php`
+(backup `~/headless-bootstrap.php.bak-*`); OPcache reset; live verified 200.
+
+### Phase 2: native React templates
+
+| Template | State |
+|---|---|
+| Blog post (781 posts × 7 folders, ~80% of all URLs) | **Ported** (`components/blog/`, `tefl/v1/post`). DOM diff of the article against live: 0 differences on 25 post URLs across all 7 folders, including FAQs, key takeaways and YouTube embeds (Complianz consent placeholders applied by the endpoint). FAQ accordion, salary ticker, progress bar, author bio, copy link and the GA4 `blog_*` events are React; the theme's `ti-single-post-redesign.js` is dropped on these pages |
+
+Next candidates by URL count: teach-abroad guides (63), pages by template
+(112: course overview, homepage…), courses (24), internships (13). Then the
+header/footer, which removes the per-page shell render.
+
+Also fixed for every page: the blog redesign's `UrbanistTI` font was blocked
+cross-origin (no CORS on nginx fonts); it's now self-hosted with the Astra icon fonts.
 
 ### Next app (this repo)
 

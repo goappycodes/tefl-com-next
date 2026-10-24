@@ -37,6 +37,7 @@ require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/cors.php';
 require_once __DIR__ . '/rest-render.php';
 require_once __DIR__ . '/rest-routes.php';
+require_once __DIR__ . '/rest-post.php';
 
 add_action('rest_api_init', function () {
     register_rest_route(TEFL_HEADLESS_NS, '/health', array(

@@ -19,9 +19,10 @@ import type { RenderedPage } from "@/lib/render";
  * same-origin copies in /public/wp-fonts. Becomes a no-op once nginx sends
  * `Access-Control-Allow-Origin` for fonts (see README "Infra follow-ups").
  */
-const FONT_OVERRIDES = `
+export const FONT_OVERRIDES = `
 @font-face{font-family:"Astra";src:url(/wp-fonts/astra.woff) format("woff"),url(/wp-fonts/astra.ttf) format("truetype");font-weight:normal;font-style:normal;font-display:fallback}
 @font-face{font-family:'Woo-Side-Cart';src:url(/wp-fonts/Woo-Side-Cart.woff) format('woff'),url(/wp-fonts/Woo-Side-Cart.ttf) format('truetype');font-weight:normal;font-style:normal}
+@font-face{font-family:"UrbanistTI";src:url(/wp-fonts/Urbanist-VariableFont_wght.ttf) format("truetype-variations"),url(/wp-fonts/Urbanist-VariableFont_wght.ttf) format("truetype");font-weight:100 900;font-style:normal;font-display:swap}
 `;
 
 export default function WpPage({ page }: { page: RenderedPage }) {
