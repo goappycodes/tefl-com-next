@@ -4,6 +4,58 @@ _Last updated 2026-10-24. Companion to the README (architecture) and to the TEFL
 "Headless Migration — Technical Integration Reference" (Oct 2026), whose lessons
 this pass applied._
 
+## Handover (start here)
+
+_Kept current on every push, so the work can continue from any machine._
+
+### Where everything is
+
+| What | Where |
+|---|---|
+| Next app | GitHub `goappycodes/tefl-com-next`, branch `main`. Every push to `main` deploys to **https://next.teflinstitute.com** (Vercel, noindex) |
+| WordPress (live, production) | Forge server `ssh forge@134.209.25.72`, WP root `~/teflinstitute.com`, no sudo. Needs your SSH key on the server |
+| WordPress code we own | `wordpress/` in this repo → deployed by hand (scp) to `wp-content/themes/teflinstitute/headless/` and `wp-content/mu-plugins/` |
+| Theme source (reference for ports) | Not in this repo. Fetch from the server into a sibling folder: `mkdir -p ../teflinstitute-wp/wp-content/themes && cd ../teflinstitute-wp/wp-content/themes && ssh forge@134.209.25.72 'cd ~/teflinstitute.com/wp-content/themes && tar --exclude=.git -czf - teflinstitute' \| tar -xzf -` |
+| `ISRSECRET` | Not in git. Same value as `TEFL_ISR_SECRET` in the server's `wp-config.php` (`grep TEFL_ISR_SECRET ~/teflinstitute.com/wp-config.php`) and in the Vercel project env |
+
+### Set up on a new machine
+
+```bash
+git clone https://github.com/goappycodes/tefl-com-next.git && cd tefl-com-next
+npm install
+cp .env.example .env.local   # then set ISRSECRET (see above)
+npm run dev                  # http://localhost:3000
+node scripts/domdiff.mjs /blog/what-is-edtpa/   # sanity check: 0 differing
+```
+
+### Current state
+
+- **Staging** serves every URL. Blog posts are native React; everything else is
+  the passthrough render (WordPress HTML), until its family is pushed.
+- **WordPress → staging cache purges are live** (`TEFL_ISR_BASE_URL` set; see "Done").
+- **Phase 2 (native React)**: progress table in the README ("Phase 2 progress").
+  The six remaining families (destinations, courses, overviews, home, pages,
+  promos) are being ported in parallel. A family lands in git only once it
+  shows 0 differences against live; until then its files exist only in the
+  working copy of the machine doing the port, and its endpoint file may
+  already be on the server in `headless/native/` (REST-only and inert until the
+  Next side calls it). Compare `ssh … ls ~/teflinstitute.com/wp-content/themes/teflinstitute/headless/native/`
+  with `wordpress/headless/native/` here to see what's deployed but not committed.
+
+### How to continue
+
+1. Port a template (or finish a family): follow `docs/NATIVE-TEMPLATES.md`.
+   Families and their templates are listed in the README progress table; the
+   registry entry goes in `lib/native/families/<family>.tsx`.
+2. Verify with `node scripts/domdiff.mjs <paths…>`: 0 differing across the US
+   root and the six geo folders.
+3. Commit only verified files, update the README progress table and this
+   section, check the committed tree builds, push. (Don't run `next build` in
+   a checkout whose dev server is running: they share `.next`.)
+4. After the families: port the header & footer (theme's own markup only;
+   `wp_head`/`wp_footer` plugin output stays WordPress HTML), then the P1/P2
+   items under "What's left".
+
 ## How this differs from TEFL.ie
 
 TEFL.ie rebuilt every page as native React (72 routes, 147 components) and then had

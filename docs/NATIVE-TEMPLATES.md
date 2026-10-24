@@ -56,7 +56,8 @@ Source of truth is the theme on the server (local copy:
    (`{`Published ${date}`}`) to match the DOM. Keep the GA/dataLayer events the
    theme script pushes.
 4. **Registry**: one `template<Data>({ endpoint, match, replaces, render })`
-   entry in `lib/native/registry.tsx`. Match on body classes only.
+   entry in your family file `lib/native/families/<family>.tsx` (the registry
+   imports every family). Match on body classes only.
 5. **Deploy the endpoint** (additive, REST-only):
    `scp` to the server's `wp-content/themes/teflinstitute/headless/native/`,
    `php -l` it there first, then flush OPcache

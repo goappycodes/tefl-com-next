@@ -67,9 +67,30 @@ head, GTM dataLayer, offer banners and footer stay exact per page while the
 header/footer wait their turn to be ported. If the endpoint 404s or the slot
 can't be found, the route falls back to the passthrough page.
 
-Templates are listed in `lib/native/registry.tsx`; the porting recipe and the
-list of ported templates are in `docs/NATIVE-TEMPLATES.md`. Each port is checked
-with `node scripts/domdiff.mjs <path>…` (content slot vs live, 0 differences).
+Templates are listed in `lib/native/registry.tsx` (one file per family in
+`lib/native/families/`); the porting recipe is `docs/NATIVE-TEMPLATES.md`. Each
+port is checked with `node scripts/domdiff.mjs <path>…` (content slot vs live,
+0 differences).
+
+#### Phase 2 progress
+
+_Updated on every push. Where things stand and how to pick the work up on
+another machine: `docs/MIGRATION-STATUS.md` → "Handover"._
+
+| Family | Templates | Live URLs (× 7 folders) | State |
+|---|---|---|---|
+| Blog | `single-post-redesign.php` | 781 posts | ✅ Native, on staging, 0-diff vs live |
+| Destinations | teach-abroad guides, guides, country pages, jobs pages, support centre, placements | ~110 | 🔄 Porting |
+| Courses | `single-course.php` and its 3 layout variants | 28 | 🔄 Porting |
+| Overviews | course overviews, recommender, TEFL Plus, trial, shop, gift vouchers | ~13 | 🔄 Porting |
+| Home | homepage template (incl. `/`), internships, screening forms | ~47 | 🔄 Porting |
+| Pages | default page template, one-off pages, blog index, categories, search, 404 | ~95 + archives | 🔄 Porting |
+| Promos | January / Black Friday sale pages, discount codes | ~12 | 🔄 Porting |
+| Header & footer | Astra header, mega menu, offer banner, footer columns, sticky CTA | every page | ⏳ After the families |
+
+Not ported on purpose: `black-friday-landing-page-2026.php` (being built on the
+live server now), `page-checkout.php` and every WooCommerce / account path (they
+stay on WordPress).
 
 ### Caching / cache-busting
 
