@@ -42,6 +42,18 @@ node scripts/domdiff.mjs /blog/what-is-edtpa/   # sanity check: 0 differing
   Next side calls it). Compare `ssh … ls ~/teflinstitute.com/wp-content/themes/teflinstitute/headless/native/`
   with `wordpress/headless/native/` here to see what's deployed but not committed.
 
+### Watch out for
+
+- **MalCare firewall.** Heavy verification traffic from one IP gets it blacklisted
+  (every PHP request then 403s with "Blocked because of Malicious Activities").
+  Happened 2026-10-26 to `49.47.154.137`; fixed by whitelisting it in the MalCare
+  dashboard (it syncs to the site within ~5 min). Keep diff sweeps small; whitelist
+  any new machine's IP before a big run.
+- **Cloudflare edge-caches `index.php?rest_route=…`** (ignores `no-store`). Native
+  data fetches add a one-minute `&_m=` buster (`lib/native/data.ts`). Cleaner:
+  a Cloudflare cache rule "bypass cache when query contains `rest_route=`"
+  (dashboard access needed). `/wp-json/` is already not cached.
+
 ### How to continue
 
 1. Port a template (or finish a family): follow `docs/NATIVE-TEMPLATES.md`.

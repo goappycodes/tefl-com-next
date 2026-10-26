@@ -72,6 +72,16 @@ Source of truth is the theme on the server (local copy:
    (A hidden tab has zero width, and the theme JS switches to its mobile layout.)
    Dev caches fetches: after changing an endpoint, purge with
    `GET /api/revalidate/?tag=pages&secret=$ISRSECRET`.
+   - `--mask-geo` hides what legitimately varies between live's cached HTML and a
+     fresh render: geo prices / currency / "N% off" / JSON-LD prices, WooCommerce's
+     random `quantity_<id>`, `uniqid()` ids, the countdown's `<now>--<expiry>` class.
+     Use it for the final numbers; read the unmasked diff once to be sure only those differ.
+   - Both documents are re-balanced like a browser builds them (`scripts/balance.mjs`),
+     so the theme's invalid markup (`<h6>…</h2>`, stray end tags) compares correctly.
+   - **Go gently on the server.** Each Next render makes several PHP requests from your
+     IP; on 2026-10-26 six parallel sweeps got this machine's IP blacklisted by the
+     MalCare firewall (403 on every PHP request until it was whitelisted in the MalCare
+     dashboard). domdiff waits 2 s between paths (`--delay`); run ≤10 paths at a time.
 
 ## Ported
 

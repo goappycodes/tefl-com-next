@@ -2,7 +2,7 @@
 /**
  * DOM diff of a native template against live WordPress.
  *
- *   node scripts/domdiff.mjs [--base http://localhost:3000] [--selector "#content"] [--max 40] <path> [<path>…]
+ *   node scripts/domdiff.mjs [--base http://localhost:3000] [--selector "#content"] [--max 40] [--delay 2000] [--mask-geo] <path> […]
  *
  * Fetches each path from live (https://teflinstitute.com) and from the Next
  * app (--base), takes the element matching --selector in both server HTML
@@ -10,6 +10,10 @@
  * (sorted; class tokens sorted; styles and on-site URLs normalised) and
  * whitespace-collapsed text. JSON-LD compares as parsed JSON. Prints the
  * differing lines per path, then a summary; exits 1 if any path differs.
+ *
+ * Both documents are first re-balanced the way a browser's tree builder would
+ * (scripts/balance.mjs): the theme's invalid markup (`<h6>…</h2>`, stray end
+ * tags) otherwise makes node-html-parser flatten the page.
  *
  * The default selector is the content slot every template shares
  * (#content > .ast-container), i.e. exactly what a native template renders.
@@ -19,6 +23,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
+import { balance } from "./balance.mjs";
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { parse } = require(path.join(root, "node_modules/next/dist/compiled/node-html-parser"));
 
@@ -34,6 +40,28 @@ const LIVE = opt("live", "https://teflinstitute.com");
 const BASE = opt("base", "http://localhost:3000");
 const SELECTOR = opt("selector", "#content > .ast-container");
 const MAX = Number(opt("max", "40"));
+// Pause between paths: each Next render makes several PHP requests to WordPress, and a
+// burst from one IP got it blacklisted by MalCare (2026-10-26). Keep sweeps gentle.
+const DELAY = Number(opt("delay", "2000"));
+// --mask-geo: hide values WordPress computes from the visitor's geolocation or the render date
+// (live serves whatever the first visitor after a cache flush saw): price HTML, Save-% badges,
+// JSON-LD price fields.
+const MASK_GEO = args.includes("--mask-geo");
+if (MASK_GEO) args.splice(args.indexOf("--mask-geo"), 1);
+const GEO_KEYS = new Set(["price", "priceCurrency", "lowPrice", "highPrice", "validFrom"]);
+// …and per-render values: WooCommerce's random quantity input ids, uniqid() ids,
+// the countdown shortcode's `<now>--<expiry>` timestamp class.
+const maskVolatile = (v) =>
+  v
+    .replace(/quantity_[0-9a-f]{8,}/gi, "quantity_[id]")
+    .replace(/\b\d{10}--\d{10}\b/g, "[now]--[expiry]")
+    .replace(/\b[0-9a-f]{13}\b/g, "[uniqid]");
+const maskLd = (v) =>
+  Array.isArray(v)
+    ? v.map(maskLd)
+    : v && typeof v === "object"
+      ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, GEO_KEYS.has(k) ? "[geo]" : maskLd(x)]))
+      : v;
 const paths = args;
 if (!paths.length) {
   console.error("usage: node scripts/domdiff.mjs [--base URL] [--selector CSS] [--max N] <path>…");
@@ -70,12 +98,13 @@ const normStyle = (v) =>
 
 const URL_ATTRS = new Set(["href", "src", "action", "data-url", "poster", "data-src", "data-href"]);
 
-function serialise(rootEl) {
+function serialise(rootEl, pagePath) {
   const out = [];
   const walk = (n, d) => {
     const pad = " ".repeat(d);
     if (n.nodeType === 3) {
-      const t = decode(n.rawText).replace(/\s+/g, " ").trim();
+      let t = decode(n.rawText).replace(/\s+/g, " ").trim();
+      if (MASK_GEO) t = t.replace(/\b\d+% off\b/gi, "[n]% off");
       if (t) out.push(pad + JSON.stringify(t));
       return;
     }
@@ -84,11 +113,15 @@ function serialise(rootEl) {
     if (tag === "script" && /ld\+json/.test(n.getAttribute("type") || "")) {
       let j;
       try {
-        j = JSON.stringify(JSON.parse(n.rawText));
+        j = JSON.stringify(MASK_GEO ? maskLd(JSON.parse(n.rawText)) : JSON.parse(n.rawText));
       } catch {
         j = "BADJSON " + n.rawText.trim().slice(0, 80);
       }
       out.push(`${pad}<script ld> ${j}`);
+      return;
+    }
+    if (MASK_GEO && /(^|\s)(wcpbc-price|woocommerce-Price-amount|savings)(\s|$)/.test(n.getAttribute("class") || "")) {
+      out.push(pad + " [geo price]");
       return;
     }
     let entries = Object.entries(n.attributes);
@@ -101,6 +134,11 @@ function serialise(rootEl) {
       entries = entries.filter(([k]) => !["type", "data-tefl-type"].includes(k.toLowerCase()));
       if (!plain) entries.push(["type", real]);
     }
+    if (tag === "form" && /^post$/i.test(n.getAttribute("method") || "")) {
+      // The render gives action-less POST forms the page URL (tefl_headless_rewrite_html),
+      // which is where the browser posts them anyway: compare them as action-less.
+      entries = entries.filter(([k, v]) => !(k.toLowerCase() === "action" && normUrl(decode(v)).split("#")[0] === pagePath));
+    }
     const attrs = entries
       .map(([k, v]) => {
         k = k.toLowerCase();
@@ -109,6 +147,7 @@ function serialise(rootEl) {
         else if (k === "style") v = normStyle(v);
         else if (k === "srcset") v = v.split(",").map((c) => c.trim().split(/\s+/).map((p, i) => (i ? p : normUrl(p))).join(" ")).join(", ");
         else if (URL_ATTRS.has(k)) v = normUrl(v);
+        if (MASK_GEO) v = maskVolatile(v);
         return `${k}=${v}`;
       })
       .sort();
@@ -149,11 +188,12 @@ function lineDiff(a, b) {
 
 async function get(url) {
   const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (tefl domdiff)" }, redirect: "manual" });
-  return { status: res.status, doc: parse(await res.text(), { comment: false, blockTextElements: { script: true, style: true, noscript: true, pre: true } }) };
+  return { status: res.status, doc: parse(balance(await res.text()), { comment: false, blockTextElements: { script: true, style: true, noscript: true, pre: true } }) };
 }
 
 let failed = 0;
-for (const p of paths) {
+for (const [i, p] of paths.entries()) {
+  if (i) await new Promise((r) => setTimeout(r, DELAY));
   const [live, next] = await Promise.all([get(LIVE + p), get(BASE + p)]);
   const L = live.doc.querySelector(SELECTOR);
   const N = next.doc.querySelector(SELECTOR);
@@ -162,8 +202,8 @@ for (const p of paths) {
     console.log(`✗ ${p}: status live ${live.status} / next ${next.status}; selector found live ${!!L} / next ${!!N}`);
     continue;
   }
-  const a = serialise(L);
-  const b = serialise(N);
+  const a = serialise(L, p.split("?")[0]);
+  const b = serialise(N, p.split("?")[0]);
   const d = lineDiff(a, b);
   if (d.length) failed++;
   console.log(`${d.length ? "✗" : "✓"} ${p}: ${a.length} lines, ${d.length} differing`);

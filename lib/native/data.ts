@@ -30,9 +30,15 @@ export async function getNativeData<T>(
 ): Promise<T | null> {
   const cc = /^\/(gb|za|nl|ca|it|fr)\//.exec(wpPath)?.[1];
   const id = bodyPostId(new Set(page.body_class.split(/\s+/)));
+  // `_m` (the current minute) busts Cloudflare: it edge-caches `index.php?rest_route=`
+  // URLs despite `Cache-Control: no-store` (seen 25+ min old), which would hand a
+  // revalidation stale JSON after a WordPress save. One-minute buckets keep the edge
+  // copy at most a minute old. (`/wp-json/` isn't edge-cached, but a geo folder's
+  // REST context needs the `/<cc>/index.php` form.)
+  const minute = Math.floor(Date.now() / 60000);
   const url =
     `${WP_ORIGIN}${cc ? `/${cc}` : ""}/index.php?rest_route=/tefl/v1/native/${endpoint}` +
-    `&path=${encodeURIComponent(wpPath)}${id ? `&id=${id}` : ""}`;
+    `&path=${encodeURIComponent(wpPath)}${id ? `&id=${id}` : ""}&_m=${minute}`;
   const isBuild = process.env.NEXT_PHASE === "phase-production-build";
   try {
     const res = await fetch(url, {
