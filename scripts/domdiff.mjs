@@ -49,6 +49,8 @@ const DELAY = Number(opt("delay", "2000"));
 const MASK_GEO = args.includes("--mask-geo");
 if (MASK_GEO) args.splice(args.indexOf("--mask-geo"), 1);
 const GEO_KEYS = new Set(["price", "priceCurrency", "lowPrice", "highPrice", "validFrom"]);
+// The geolocated country the theme stamps on price / Klarna blocks.
+const GEO_ATTRS = new Set(["data-cc", "data-country"]);
 // …and per-render values: WooCommerce's random quantity input ids, uniqid() ids,
 // the countdown shortcode's `<now>--<expiry>` timestamp class.
 const maskVolatile = (v) =>
@@ -104,7 +106,7 @@ function serialise(rootEl, pagePath) {
     const pad = " ".repeat(d);
     if (n.nodeType === 3) {
       let t = decode(n.rawText).replace(/\s+/g, " ").trim();
-      if (MASK_GEO) t = t.replace(/\b\d+% off\b/gi, "[n]% off");
+      if (MASK_GEO) t = t.replace(/\b\d+(?:\.\d+)?%/g, "[n]%");
       if (t) out.push(pad + JSON.stringify(t));
       return;
     }
@@ -147,7 +149,7 @@ function serialise(rootEl, pagePath) {
         else if (k === "style") v = normStyle(v);
         else if (k === "srcset") v = v.split(",").map((c) => c.trim().split(/\s+/).map((p, i) => (i ? p : normUrl(p))).join(" ")).join(", ");
         else if (URL_ATTRS.has(k)) v = normUrl(v);
-        if (MASK_GEO) v = maskVolatile(v);
+        if (MASK_GEO) v = GEO_ATTRS.has(k) ? "[geo]" : maskVolatile(v);
         return `${k}=${v}`;
       })
       .sort();

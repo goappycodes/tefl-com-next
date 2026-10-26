@@ -85,7 +85,7 @@ another machine: `docs/MIGRATION-STATUS.md` → "Handover"._
 | Overviews | course overviews, recommender, TEFL Plus, trial, shop, gift vouchers | ~13 | 🔄 Porting |
 | Home | homepage template (incl. `/`), internships, screening forms | ~47 | 🔄 Porting |
 | Pages | default page template, one-off pages, blog index, categories, search, 404 | ~95 + archives | 🔄 Porting |
-| Promos | January / Black Friday sale pages, discount codes | ~12 | 🔄 Porting |
+| Promos | January / Black Friday sale pages, discount codes | 13 pages | ✅ Native (10 templates). 0-diff (`--mask-geo`) on every page in all 7 folders |
 | Header & footer | Astra header, mega menu, offer banner, footer columns, sticky CTA | every page | ⏳ After the families |
 
 Known inherent differences (documented, not bugs): server-rendered prices show the

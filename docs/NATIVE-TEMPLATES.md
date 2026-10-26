@@ -128,3 +128,17 @@ Kept so the page matches live; fix them in the theme and the port together.
 - CF7 forms are captured HTML; the capture starts CF7's counter at 2 to match the
   page's unit tags (`-o2`), relying on one form being rendered before the content
   area (true on every page checked).
+
+### Promos (`components/promos/`, shared PHP `native/_promos.php`)
+
+Body class `page-template-<file>`, endpoint = file name, no `replaces` (the theme's
+timer, geo-price, Splide, lity, reviews, coupon-copy, add-to-cart and CF7 scripts
+still drive the markup): `discount-tefl-coupon-codes`, `early-access-black-friday-sale-prz`,
+`black-friday-sale-prz`, `tefl-january-sale`, `page-sale-new`, `january-courses-sale`,
+`january-internships-sale`, `internship-black-friday-landing-page` (US root 301s, so geo
+folders only), `black-friday-landing-page`, `black-friday-landing-page-2023`.
+Not ported: `black-friday-landing-page-2026.php` (being built on the live server).
+REST-context fixes in `_promos.php`: WCPBC's loading wrapper/placeholder restored,
+CF7 action + unit-tag counter set to the page's, `add_to_cart_url()` run against the
+page path, legacy markup the browser rewrites emitted as the template's own HTML,
+Trustpilot's async script kept in place with a no-op `onLoad`.
