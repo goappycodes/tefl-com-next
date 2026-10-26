@@ -39,7 +39,9 @@ node scripts/domdiff.mjs /blog/what-is-edtpa/   # sanity check: 0 differing
 - **WordPress → staging cache purges are live** (`TEFL_ISR_BASE_URL` set; see "Done").
 - **Phase 2 (native React)**: progress table in the README ("Phase 2 progress").
   Pages part 1 is native too (default page template, blog index, categories,
-  tags, search, 404); the 18 one-off page templates are being ported. A family lands in git only once it
+  tags, search, 404); the 18 one-off page templates are being ported.
+  The theme's header and footer are React as well (components/chrome/), with a
+  per-region fallback to WordPress HTML. A family lands in git only once it
   shows 0 differences against live; until then its files exist only in the
   working copy of the machine doing the port, and its endpoint file may
   already be on the server in `headless/native/` (REST-only and inert until the

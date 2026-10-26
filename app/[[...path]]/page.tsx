@@ -1,12 +1,13 @@
 import { notFound, permanentRedirect, redirect } from "next/navigation";
 
+import type { ChromeData } from "@/components/chrome/types";
 import WpPage from "@/components/WpPage";
 import WpShell from "@/components/WpShell";
-import { getNativeData } from "@/lib/native/data";
+import { getChromeData, getNativeData } from "@/lib/native/data";
 import { NATIVE_TEMPLATES } from "@/lib/native/registry";
 import { loadPage } from "@/lib/page-data";
 import { segmentsToWpPath } from "@/lib/render";
-import { splitShell } from "@/lib/shell";
+import { shellSlot, splitShell } from "@/lib/shell";
 
 /**
  * Every teflinstitute.com URL — pages, blog posts, courses, internships,
@@ -15,10 +16,16 @@ import { splitShell } from "@/lib/shell";
  * with the exact same URL.
  *
  * Templates ported to React (phase 2, lib/native/registry.tsx) render their
- * content natively inside the page's WordPress shell (header, footer,
- * scripts); everything else is the passthrough render. A native template
+ * content natively inside the page's WordPress shell (scripts, plugin
+ * output); everything else is the passthrough render. A native template
  * that can't be built for a URL (WordPress says it isn't that template, or the
  * shell's content slot is missing) falls back to the passthrough.
+ *
+ * The theme's header and footer are React too (components/chrome/, data from
+ * `tefl/v1/native/chrome`, fetched alongside the content data) — on native
+ * pages, and on passthrough pages whose content slot is self-contained (the
+ * WordPress content then sits in the shell as HTML). Without chrome data, or
+ * for a region the data doesn't cover, the WordPress header/footer HTML stays.
  *
  * On-demand ISR: nothing is prerendered at build (≈7,000 path × folder
  * combinations); each URL renders on its first request, is cached, and is
@@ -44,16 +51,22 @@ export default async function CatchAllPage({ params }: { params: { path?: string
   if (data.status === 200) {
     const classes = new Set(data.body_class.split(/\s+/));
     const native = NATIVE_TEMPLATES.find((t) => t.match(classes, data));
-    if (native) {
-      const { wpPath, cacheKey } = segmentsToWpPath(params.path ?? []);
-      const [content, shell] = [await getNativeData(native.endpoint, data, wpPath, cacheKey), splitShell(data.body)];
-      if (content && shell) {
-        return (
-          <WpShell page={data} shell={shell} replaceScripts={native.replaces}>
-            {native.render(content)}
-          </WpShell>
-        );
-      }
+    const shell = splitShell(data.body);
+    const slot = shell ? shellSlot(data.body) : null;
+    const { wpPath, cacheKey } = segmentsToWpPath(params.path ?? []);
+    const [content, chrome] = await Promise.all([
+      native && shell ? getNativeData(native.endpoint, data, wpPath, cacheKey) : null,
+      shell && (native || slot !== null) ? getChromeData<ChromeData>(data, wpPath, cacheKey) : null,
+    ]);
+    if (native && content && shell) {
+      return (
+        <WpShell page={data} shell={shell} replaceScripts={native.replaces} chrome={chrome}>
+          {native.render(content)}
+        </WpShell>
+      );
+    }
+    if (shell && chrome && slot !== null) {
+      return <WpShell page={data} shell={shell} chrome={chrome} slotHtml={slot} />;
     }
   }
 

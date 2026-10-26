@@ -211,3 +211,39 @@ variation form, screening logic and the geo price refresh).
 - The 404 can't be domdiffed in `next dev` (dev serves an empty error document for
   not-found URLs); check it on a production build or staging.
 - One-off templates register in `components/pages/families/group1.tsx`–`group4.tsx`.
+
+### Header & footer (`components/chrome/`, endpoint `native/chrome.php`, `getChromeData()`)
+
+The theme's chrome regions in the shell (`chromeSlots()` / `splitAfterPage()` in
+`lib/shell.ts`) are React on native pages, and on passthrough pages with a
+self-contained content slot (`shellSlot()`, `WpShell slotHtml`: the WordPress content
+becomes `.ast-container`'s own innerHTML, no wrapper). Ported: skip link,
+`ti_header_fn()`'s banners, primary links, search, country selector, account/cart
+icons, `#masthead` with branding and mobile toggles, `#primary-menu` (ACF mega menu),
+`new_mega_menu()` with CTA buttons, prospectus card and country guides;
+`offer-banner.php`, the `#colophon` layout and small footer, `footer-legal-holder`, the
+sticky offer CTA, `ti_footer_course_banner()`'s offer variant. No `replaces`: Astra
+navigation, `ti-global.js` (mega menu, geo city logo / phone), search and countdown
+scripts run unchanged.
+
+**Fallbacks — each region independently keeps its WordPress HTML when:** the endpoint
+fails or returns null for it; a hook callback the port doesn't know prints markup inside
+`<header>`/`<footer>`; the theme-source fingerprint changed (`TEFL_NATIVE_CHROME_SOURCE`
+in `chrome.php` — after a theme edit to header/footer code, re-verify the port and set
+the new value, which the endpoint prints in `errors`); or the shell chunk doesn't match
+the data (no `#masthead`/`#colophon`, a different offer-banner count). Plugin output
+(`wp_body_open`, `wp_footer`, Zoho, footer widget contents) always stays HTML.
+
+- The header renders the "no country" state (empty `data-country`, default call details),
+  which is what an anonymous cache file holds; `ti-global.js` localises logo and phone.
+- Stays HTML on purpose: the footer promo banner (never closes its outer `<div>`) and the
+  cookie-driven course banner (cookie never set for a cached anonymous page).
+- Reproduced on purpose: the CTA block's leaked `$add_custom_style`, the promo banner
+  printing the banner loop's `$content_icon`, a duplicate `href`. Bare numeric attributes
+  on mega-menu divs (`<div … 0>`) are dropped (React can't render them; nothing reads them).
+- Not triggered on live today, so ported but unverified: sticky CTA, course banner, the
+  header's `d-none` offer banners, the legacy banner strip / toggle banners, the mega
+  menu's `[elt_block]` / `[salary_calculator_block]`.
+- Cost: one more PHP request per page render.
+- Verify with `--selector "#page"` (header + content slot + footer), `#masthead`,
+  `#colophon`, `.header-offer-banner`, `.footer-legal-holder`.

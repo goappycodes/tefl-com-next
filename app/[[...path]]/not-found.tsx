@@ -1,8 +1,9 @@
+import type { ChromeData } from "@/components/chrome/types";
 import NotFound404 from "@/components/pages/notfound/NotFound404";
 import type { NotFoundData } from "@/components/pages/notfound/types";
 import WpPage from "@/components/WpPage";
 import WpShell from "@/components/WpShell";
-import { getNativeData } from "@/lib/native/data";
+import { getChromeData, getNativeData } from "@/lib/native/data";
 import { getNotFoundPage, type RenderedPage } from "@/lib/render";
 import { splitShell } from "@/lib/shell";
 
@@ -16,7 +17,8 @@ const NOT_FOUND_PATH = "/tefl-next-404-page/";
  *
  * The content is the native port of the theme's 404.php
  * (components/pages/notfound/, endpoint native/error404.php) inside the
- * page's WordPress shell; the passthrough render is the fallback.
+ * page's WordPress shell, with the native header / footer (components/chrome/)
+ * when their data is there; the passthrough render is the fallback.
  */
 export default async function NotFound() {
   const page = await getNotFoundPage();
@@ -40,14 +42,18 @@ async function nativeNotFound(page: RenderedPage) {
   const shell = splitShell(page.body);
   if (!shell) return null;
   let data: NotFoundData | null = null;
+  let chrome: ChromeData | null = null;
   try {
-    data = await getNativeData<NotFoundData>("error404", page, NOT_FOUND_PATH, "__404");
+    [data, chrome] = await Promise.all([
+      getNativeData<NotFoundData>("error404", page, NOT_FOUND_PATH, "__404"),
+      getChromeData<ChromeData>(page, NOT_FOUND_PATH, "__404"),
+    ]);
   } catch {
     return null;
   }
   if (!data) return null;
   return (
-    <WpShell page={page} shell={shell}>
+    <WpShell page={page} shell={shell} chrome={chrome}>
       <NotFound404 data={data} />
     </WpShell>
   );

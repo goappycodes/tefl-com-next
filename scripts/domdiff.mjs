@@ -49,8 +49,9 @@ const DELAY = Number(opt("delay", "2000"));
 const MASK_GEO = args.includes("--mask-geo");
 if (MASK_GEO) args.splice(args.indexOf("--mask-geo"), 1);
 const GEO_KEYS = new Set(["price", "priceCurrency", "lowPrice", "highPrice", "validFrom"]);
-// The geolocated country the theme stamps on price / Klarna blocks.
-const GEO_ATTRS = new Set(["data-cc", "data-country", "data-product_variations"]);
+// The geolocated country the theme stamps on price / Klarna blocks, and the header's
+// geolocated phone number (country selector's data-call-details, ti_header_fn()).
+const GEO_ATTRS = new Set(["data-cc", "data-country", "data-product_variations", "data-call-details"]);
 // Price amounts in plain text ("From €50", "R 3,450") and WooCommerce's locale-dependent button label.
 const maskGeoText = (t) =>
   t

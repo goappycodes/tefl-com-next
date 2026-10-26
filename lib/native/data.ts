@@ -55,3 +55,17 @@ export async function getNativeData<T>(
     throw e;
   }
 }
+
+/**
+ * The theme's header / footer data (`tefl/v1/native/chrome`, components/chrome/)
+ * for a page — fetched alongside the page's own data, through the same path
+ * (geo folder, post ID, cache tags, Cloudflare buster). Never throws: without
+ * it (endpoint missing, a failure) the page keeps its WordPress header/footer.
+ */
+export async function getChromeData<T>(page: RenderedPage, wpPath: string, cacheKey: string): Promise<T | null> {
+  try {
+    return await getNativeData<T>("chrome", page, wpPath, cacheKey);
+  } catch {
+    return null;
+  }
+}
