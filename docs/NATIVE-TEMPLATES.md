@@ -158,3 +158,19 @@ string), `tefl-shop` → `page-tefl-shop.php`.
   tree React can build); the overview endpoint returns null when a tab title contains
   `"` (/gb/ today), `page-courses` when an image alt does — both break live's markup.
 - Empty `style=""` attributes are printed as `STYLE=""` to match; React warns once in dev only.
+
+### Home (`components/home/`, shared PHP `native/_home.php`)
+
+No `replaces` (theme JS drives sliders, read-more, accordions, timers, CF7, the
+variation form, screening logic and the geo price refresh).
+| Template | Body class | Endpoint |
+|---|---|---|
+| `ti-homepage-template-2023.php` (18 pages incl. the front page) | `page-template-ti-homepage-template-2023` | `homepage2023` |
+| `single-internship.php` → `ti-single-internship-template-new2023.php` (every live internship) | `single-internship` | `internship` |
+| `page-internships.php` | `page-template-page-internships` | `internships` |
+| `single-screening_form.php` | `single-screening_form` | `screening` |
+| `homepage_copy.php` | `page-template-homepage_copy` | `homecopy` |
+- The old `ti-single-internship-template.php` is unused; its posts would fall back to passthrough.
+- `components/home/screening-script.ts` and `internship-ri.ts` are generated from the theme
+  templates' inline scripts — regenerate them if those templates change.
+- The front page's CF7 instance counter is `o2` in a fresh render; live's cached `/` shows `o3`.
