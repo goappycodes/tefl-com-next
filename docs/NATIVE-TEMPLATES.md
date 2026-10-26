@@ -190,3 +190,24 @@ variation form, screening logic and the geo price refresh).
   "N students enrolled in the last 7 days".
 - Server-side prices follow wherever the endpoint request geolocates (Vercel's region
   in production) until the theme's AJAX re-prices for the visitor — as live's cache does.
+
+### Pages (`components/pages/`, shared PHP `native/_pages.php`)
+
+| Template | Body class | Endpoint |
+|---|---|---|
+| Astra `page.php` (default template, 73 pages) | `page-template-default` + `page`, not `home` / `woocommerce-page` (registered last) | `page` |
+| `page-blog.php` (`/blog/`) | `page-template-page-blog-php` | `page-blog` |
+| `category.php` (+ paging) | `archive` + `category` | `category` |
+| Astra blog paging / tag archives / search results | `blog` (not `page`/`home`), `archive` + `tag`, `search` | `astra-archive` |
+| `404.php` (rendered by `app/[[...path]]/not-found.tsx`) | `error404` | `error404` (named so it sorts after `_common.php`) |
+- Default pages fall back to passthrough when their content HTML isn't self-contained
+  (hire-wire pages close a `</div>` they never opened), use AutomateWoo shortcodes, or
+  have a sidebar / comments / extra Astra output.
+- `_pages.php` replays what a REST request skips: Astra's `wp`-action setup (schema
+  attributes, per-page title toggles), Boxzilla's pre-render (CF7 numbering `-o2`), the
+  CF7 action, echoed shortcode output, and for listings the main query WordPress builds
+  for the URL (incl. `is_home`, `handle_404()`).
+- `itemscope` is kept lowercase to match live's `itemscope="itemscope"`; React warns once in dev.
+- The 404 can't be domdiffed in `next dev` (dev serves an empty error document for
+  not-found URLs); check it on a production build or staging.
+- One-off templates register in `components/pages/families/group1.tsx`–`group4.tsx`.

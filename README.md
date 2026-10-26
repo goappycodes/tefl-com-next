@@ -84,7 +84,8 @@ another machine: `docs/MIGRATION-STATUS.md` → "Handover"._
 | Courses | `single-course.php` (new2023, legacy, 2024 designs) and `course-page-2026.php` | 28 | ✅ Native (all 4 designs). 0-diff (`--mask-geo`) on 103 of 108 URLs in US, /gb/, /za/, /nl/ (rest: redirects and dev 500s that re-ran clean) and samples in /ca/ /it/ /fr/ |
 | Overviews | course overviews, recommender, TEFL Plus, trial, shop, gift vouchers, course extensions, country course | ~14 pages | ✅ Native (10 of 11 templates; `tesol-tefl-courses-v2.php` stays passthrough — its markup closes tags it never opened). 0-diff (`--mask-geo`) in all 7 folders |
 | Home | homepage template (incl. `/`), internships, screening forms, home-copy | ~48 pages | ✅ Native (5 templates). 0-diff (`--mask-geo`) on every page in US + /gb/ and samples in the other folders; `/` differs only by CF7's instance counter (o2 vs live's cached o3) |
-| Pages | default page template, one-off pages, blog index, categories, search, 404 | ~95 + archives | 🔄 Porting |
+| Pages | default page template, blog index, categories, tags, blog paging, search, 404 | 73 pages + archives | ✅ Native (part 1). 0-diff (`--mask-geo`) on the default template in US + /gb/ (64/65 each — the rest pass through on purpose) + 22 across the other folders, and on every archive/search checked |
+| Pages — one-offs | about, team, contact, callback, TOC, sitemap, resources, affiliate, webinars, podcast, scholarships, ELT, TEO, teach online, ESL franchise, Tashkent, TEFL for schools | 18 templates | 🔄 Porting |
 | Promos | January / Black Friday sale pages, discount codes | 13 pages | ✅ Native (10 templates). 0-diff (`--mask-geo`) on every page in all 7 folders |
 | Header & footer | Astra header, mega menu, offer banner, footer columns, sticky CTA | every page | ⏳ After the families |
 

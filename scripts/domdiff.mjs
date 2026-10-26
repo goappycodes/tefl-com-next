@@ -64,6 +64,7 @@ const maskGeoText = (t) =>
 const maskVolatile = (v) =>
   v
     .replace(/quantity_[0-9a-f]{8,}/gi, "quantity_[id]")
+    .replace(/\baffwp-login-form-\d+\b/g, "affwp-login-form-[id]")
     .replace(/\b\d{10}--\d{10}\b/g, "[now]--[expiry]")
     .replace(/\b[0-9a-f]{13}\b/g, "[uniqid]");
 const maskLd = (v) =>
@@ -147,7 +148,10 @@ function serialise(rootEl, pagePath) {
     if (tag === "form" && /^post$/i.test(n.getAttribute("method") || "")) {
       // The render gives action-less POST forms the page URL (tefl_headless_rewrite_html),
       // which is where the browser posts them anyway: compare them as action-less.
-      entries = entries.filter(([k, v]) => !(k.toLowerCase() === "action" && normUrl(decode(v)).split("#")[0] === pagePath));
+      entries = entries.filter(
+        ([k, v]) =>
+          !(k.toLowerCase() === "action" && (decode(v).trim() === "" || normUrl(decode(v)).split("#")[0] === pagePath)),
+      );
     }
     const attrs = entries
       .map(([k, v]) => {
