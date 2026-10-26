@@ -78,3 +78,43 @@ Source of truth is the theme on the server (local copy:
 | Template | Body class match | React | Endpoint |
 |---|---|---|---|
 | `single-post-redesign.php` | `single-post` + `tibr-active` | `components/blog/` | `native/post.php` |
+| `single-teach_english_abroad.php` | `single-teach_english_abroad` | `components/destinations/TeachEnglishAbroad.tsx` | `native/teach_english_abroad.php` (replaces `single-teach-english-abroad-js-js`) |
+| `single-country-page.php` (+ 8 parts) | `page-template-single-country-page` | `components/destinations/CountryPage.tsx` | `native/country_page.php` |
+| `single-guide.php` | `single-guide` | `components/destinations/Guide.tsx` | `native/guide.php` |
+| `where-to-tefl.php` | `page-template-where-to-tefl` | `components/destinations/WhereToTefl.tsx` | `native/where_to_tefl.php` |
+| `page-teach-english-jobs.php` | `page-template-page-teach-english-jobs` | `components/destinations/TeachEnglishJobs.tsx` | `native/teach_english_jobs.php` |
+| `page-jobs-service.php` | `page-template-page-jobs-service` | `components/destinations/JobsService.tsx` | `native/jobs_service.php` (replaces `ti-job-service-js-js`) |
+| `page-all-jobs.php` | `page-template-page-all-jobs` | `components/destinations/AllJobs.tsx` | `native/all_jobs.php` |
+| `page-job-hunters-pack.php` | `page-template-page-job-hunters-pack` | `components/destinations/JobHuntersPack.tsx` | `native/job_hunters_pack.php` |
+| `single-placement.php` | `single-placement` | `components/destinations/Placement.tsx` | `native/placement.php` |
+| `single-support_centre.php` | `single-support_centre` | `components/destinations/SupportTopic.tsx` | `native/support_centre.php` |
+| `page-supportcenter.php` | `page-template-page-supportcenter` | `components/destinations/SupportCenter.tsx` | `native/support_center_archive.php` (replaces `ti-support-center-js-js`) |
+| `page-faq.php` | `page-template-page-faq` | `components/destinations/FaqPage.tsx` | `native/faq_page.php` |
+| `single-alerts.php` | `single-alerts` | `components/destinations/Alert.tsx` | `native/alerts.php` |
+| `single-ppc.php` | `single-ppc` | `components/destinations/Ppc.tsx` | `native/ppc.php` |
+
+Shared destinations helpers: `native/destinations_lib.php` (`tefl_native_destinations_*`).
+
+### Known inherent differences (vs live's cached HTML)
+
+- **Server-rendered prices / currency.** Live pages are WP Fastest Cache files, so
+  their prices are whatever the visitor who generated the cache file saw. The
+  endpoint renders the folder's default zone. Both are replaced in the browser by
+  WCPBC's AJAX with the visitor's own price.
+- **Timestamps.** `[tefl_timer_shortcode]` (PPC) prints `time()` into a class name.
+- **`/tefl-jobs/`** has an unclosed `<div>` before `</section>` in the theme; the
+  browser repairs it, node-html-parser doesn't, so domdiff can't find `#content`
+  on the live side there. Output verified with that `</div>` added.
+
+### Theme quirks reproduced on purpose
+
+Kept so the page matches live; fix them in the theme and the port together.
+- all-jobs and PPC carry `$rate` / `$percentage` over from the previous job row.
+- jobs-service's inverted `!$gocambio_jobs` check prints an empty careers section.
+- An expired placement countdown (Bangkok) throws a TypeError every second, as on live.
+- `calss` / `classs` attribute typos; nested `#content` on alerts; support-centre
+  excerpts cut at 250 bytes (a split character shows as U+FFFD).
+- `ti-all-jobs.js` throws `$(...).size is not a function` (jQuery 3.6, no Migrate) on live too.
+- CF7 forms are captured HTML; the capture starts CF7's counter at 2 to match the
+  page's unit tags (`-o2`), relying on one form being rendered before the content
+  area (true on every page checked).

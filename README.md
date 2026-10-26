@@ -80,13 +80,19 @@ another machine: `docs/MIGRATION-STATUS.md` → "Handover"._
 | Family | Templates | Live URLs (× 7 folders) | State |
 |---|---|---|---|
 | Blog | `single-post-redesign.php` | 781 posts | ✅ Native, on staging, 0-diff vs live |
-| Destinations | teach-abroad guides, guides, country pages, jobs pages, support centre, placements | ~110 | 🔄 Porting |
+| Destinations | teach-abroad guides, guides, country pages, jobs pages, support centre, placements, FAQ, alerts, PPC | ~110 | ✅ Native (14 templates). 0-diff on 153 teach-abroad URLs and every other page; known inherent diffs below |
 | Courses | `single-course.php` and its 3 layout variants | 28 | 🔄 Porting |
 | Overviews | course overviews, recommender, TEFL Plus, trial, shop, gift vouchers | ~13 | 🔄 Porting |
 | Home | homepage template (incl. `/`), internships, screening forms | ~47 | 🔄 Porting |
 | Pages | default page template, one-off pages, blog index, categories, search, 404 | ~95 + archives | 🔄 Porting |
 | Promos | January / Black Friday sale pages, discount codes | ~12 | 🔄 Porting |
 | Header & footer | Astra header, mega menu, offer banner, footer columns, sticky CTA | every page | ⏳ After the families |
+
+Known inherent differences (documented, not bugs): server-rendered prices show the
+folder's default currency where live's cached HTML shows whichever visitor created
+the cache — the price script replaces both with the visitor's own price after
+load; countdown shortcodes that print `time()`; theme bugs reproduced on purpose
+(listed per template in `docs/NATIVE-TEMPLATES.md`).
 
 Not ported on purpose: `black-friday-landing-page-2026.php` (being built on the
 live server now), `page-checkout.php` and every WooCommerce / account path (they

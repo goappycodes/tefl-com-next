@@ -91,7 +91,17 @@ function serialise(rootEl) {
       out.push(`${pad}<script ld> ${j}`);
       return;
     }
-    const attrs = Object.entries(n.attributes)
+    let entries = Object.entries(n.attributes);
+    if (tag === "script") {
+      // The render defers every executable script (type="text/tefl-deferred",
+      // the original type kept in data-tefl-type) and WpScripts runs it as-is:
+      // compare the script's real type, not the deferral marker.
+      const real = (n.getAttribute("data-tefl-type") || n.getAttribute("type") || "").toLowerCase();
+      const plain = ["", "text/javascript", "application/javascript", "text/ecmascript", "text/tefl-deferred"].includes(real);
+      entries = entries.filter(([k]) => !["type", "data-tefl-type"].includes(k.toLowerCase()));
+      if (!plain) entries.push(["type", real]);
+    }
+    const attrs = entries
       .map(([k, v]) => {
         k = k.toLowerCase();
         v = decode(v);
