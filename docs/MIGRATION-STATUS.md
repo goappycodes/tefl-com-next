@@ -32,11 +32,12 @@ node scripts/domdiff.mjs /blog/what-is-edtpa/   # sanity check: 0 differing
 
 - **Staging** serves every URL. Native React so far: blog posts, destinations
   (teach-abroad guides, guides, country, jobs, support, placements, FAQ), promos
-  (sale and campaign landing pages). Everything
+  (sale and campaign landing pages), overviews (course overviews, recommender,
+  shop, TEFL Plus, trial, gift vouchers). Everything
   else is the passthrough render (WordPress HTML) until its family is pushed.
 - **WordPress → staging cache purges are live** (`TEFL_ISR_BASE_URL` set; see "Done").
 - **Phase 2 (native React)**: progress table in the README ("Phase 2 progress").
-  Courses, overviews, home and pages are being ported in parallel. A family lands in git only once it
+  Courses, home and pages are being ported in parallel. A family lands in git only once it
   shows 0 differences against live; until then its files exist only in the
   working copy of the machine doing the port, and its endpoint file may
   already be on the server in `headless/native/` (REST-only and inert until the

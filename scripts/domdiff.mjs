@@ -50,7 +50,15 @@ const MASK_GEO = args.includes("--mask-geo");
 if (MASK_GEO) args.splice(args.indexOf("--mask-geo"), 1);
 const GEO_KEYS = new Set(["price", "priceCurrency", "lowPrice", "highPrice", "validFrom"]);
 // The geolocated country the theme stamps on price / Klarna blocks.
-const GEO_ATTRS = new Set(["data-cc", "data-country"]);
+const GEO_ATTRS = new Set(["data-cc", "data-country", "data-product_variations"]);
+// Price amounts in plain text ("From €50", "R 3,450") and WooCommerce's locale-dependent button label.
+const maskGeoText = (t) =>
+  t
+    .replace(/\b\d+(?:\.\d+)?%/g, "[n]%")
+    .replace(/(?:US\$|[$€£]|\bR(?=\s?\d)|\b(?:EUR|GBP|USD)\b)\s?\d[\d,.]*/g, "[price]")
+    .replace(/\d[\d,.]*\s?(?:€|\b(?:EUR|USD|GBP)\b)/g, "[price]")
+    .replace(/(?:US\$|[$€£]|\bR)$/, "[currency]")
+    .replace(/\bAdd to basket\b/g, "Add to cart");
 // …and per-render values: WooCommerce's random quantity input ids, uniqid() ids,
 // the countdown shortcode's `<now>--<expiry>` timestamp class.
 const maskVolatile = (v) =>
@@ -106,7 +114,7 @@ function serialise(rootEl, pagePath) {
     const pad = " ".repeat(d);
     if (n.nodeType === 3) {
       let t = decode(n.rawText).replace(/\s+/g, " ").trim();
-      if (MASK_GEO) t = t.replace(/\b\d+(?:\.\d+)?%/g, "[n]%");
+      if (MASK_GEO) t = maskGeoText(t);
       if (t) out.push(pad + JSON.stringify(t));
       return;
     }
@@ -122,7 +130,7 @@ function serialise(rootEl, pagePath) {
       out.push(`${pad}<script ld> ${j}`);
       return;
     }
-    if (MASK_GEO && /(^|\s)(wcpbc-price|woocommerce-Price-amount|savings)(\s|$)/.test(n.getAttribute("class") || "")) {
+    if (MASK_GEO && /(^|\s)(wcpbc-price|woocommerce-Price-amount|savings|percent-value)(\s|$)/.test(n.getAttribute("class") || "")) {
       out.push(pad + " [geo price]");
       return;
     }
@@ -149,7 +157,9 @@ function serialise(rootEl, pagePath) {
         else if (k === "style") v = normStyle(v);
         else if (k === "srcset") v = v.split(",").map((c) => c.trim().split(/\s+/).map((p, i) => (i ? p : normUrl(p))).join(" ")).join(", ");
         else if (URL_ATTRS.has(k)) v = normUrl(v);
-        if (MASK_GEO) v = GEO_ATTRS.has(k) ? "[geo]" : maskVolatile(v);
+        // GTM4WP's hidden product JSON carries the geo price too.
+        const geoValue = k === "value" && n.getAttribute("name") === "gtm4wp_product_data";
+        if (MASK_GEO) v = GEO_ATTRS.has(k) || geoValue ? "[geo]" : maskGeoText(maskVolatile(v));
         return `${k}=${v}`;
       })
       .sort();

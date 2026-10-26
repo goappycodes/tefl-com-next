@@ -82,7 +82,7 @@ another machine: `docs/MIGRATION-STATUS.md` → "Handover"._
 | Blog | `single-post-redesign.php` | 781 posts | ✅ Native, on staging, 0-diff vs live |
 | Destinations | teach-abroad guides, guides, country pages, jobs pages, support centre, placements, FAQ, alerts, PPC | ~110 | ✅ Native (14 templates). 0-diff on 153 teach-abroad URLs and every other page; known inherent diffs below |
 | Courses | `single-course.php` and its 3 layout variants | 28 | 🔄 Porting |
-| Overviews | course overviews, recommender, TEFL Plus, trial, shop, gift vouchers | ~13 | 🔄 Porting |
+| Overviews | course overviews, recommender, TEFL Plus, trial, shop, gift vouchers, course extensions, country course | ~14 pages | ✅ Native (10 of 11 templates; `tesol-tefl-courses-v2.php` stays passthrough — its markup closes tags it never opened). 0-diff (`--mask-geo`) in all 7 folders |
 | Home | homepage template (incl. `/`), internships, screening forms | ~47 | 🔄 Porting |
 | Pages | default page template, one-off pages, blog index, categories, search, 404 | ~95 + archives | 🔄 Porting |
 | Promos | January / Black Friday sale pages, discount codes | 13 pages | ✅ Native (10 templates). 0-diff (`--mask-geo`) on every page in all 7 folders |

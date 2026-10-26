@@ -142,3 +142,19 @@ REST-context fixes in `_promos.php`: WCPBC's loading wrapper/placeholder restore
 CF7 action + unit-tag counter set to the page's, `add_to_cart_url()` run against the
 page path, legacy markup the browser rewrites emitted as the template's own HTML,
 Trustpilot's async script kept in place with a no-op `onLoad`.
+
+### Overviews (`components/overviews/`, shared PHP `native/overviews-shared.php`)
+
+Body class `page-template-<file>`, no `replaces` (theme scripts drive tabs, accordions,
+sliders, the timer, AJAX prices and forms). Endpoint → template:
+`courses-overview` → `ti-courses-overview-template.php`, `page-courses` →
+`page-courses.php` (US root 301s), `country-course` → `ti-page-country-course-template.php`,
+`secondary-overview` → `ti-secondary-overview-template.php`, `tefl-plus`, `trial`,
+`course-extension` → `ti-course-extension.php`, `gift-vouchers`, `search-courses` →
+`search-courses-template.php` (the recommender; answers arrive as the path's query
+string), `tefl-shop` → `page-tefl-shop.php`.
+- **Passthrough on purpose:** `tesol-tefl-courses-v2.php` (writes `<div>`/`<section>` for
+  the closing tags, so the browser nests the footer inside the content slot — not a
+  tree React can build); the overview endpoint returns null when a tab title contains
+  `"` (/gb/ today), `page-courses` when an image alt does — both break live's markup.
+- Empty `style=""` attributes are printed as `STYLE=""` to match; React warns once in dev only.
