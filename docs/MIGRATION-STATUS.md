@@ -263,6 +263,15 @@ fetch reaches WordPress through the Worker's `/wp-json/` rule.
 
 ### Known minor gaps
 
+- **404 pages are rendered in the browser.** A not-found URL returns status 404
+  with Next's error shell (`<html id="__next_error__">`, empty body); the page
+  (native 404 inside the WordPress shell) is built client-side from the embedded
+  payload. Visitors see the right page, but the server HTML has no `<head>` SEO
+  tags or content. Cause: the root layout lives inside `app/[[...path]]` (for the
+  per-page `<html lang>` / body class), so there's no root-level not-found boundary.
+  Pre-existing since phase 1. Fix with the header/footer work (root layout + a
+  root `app/not-found.tsx`).
+
 - Theme navigations done with `location.href = …` (e.g. some enrol flows) aren't
   decorated with `?ref=`. That only matters during a cross-host parallel run.
 - Complianz's JS-injected policy links stay absolute to WordPress (fine under

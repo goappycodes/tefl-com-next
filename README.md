@@ -87,7 +87,7 @@ another machine: `docs/MIGRATION-STATUS.md` → "Handover"._
 | Pages | default page template, blog index, categories, tags, blog paging, search, 404 | 73 pages + archives | ✅ Native (part 1). 0-diff (`--mask-geo`) on the default template in US + /gb/ (64/65 each — the rest pass through on purpose) + 22 across the other folders, and on every archive/search checked |
 | Pages — one-offs | about, team, contact, callback, TOC, sitemap, resources, affiliate, webinars, podcast, scholarships, ELT, TEO, teach online, ESL franchise, Tashkent, TEFL for schools | 18 templates | 🔄 Porting |
 | Promos | January / Black Friday sale pages, discount codes | 13 pages | ✅ Native (10 templates). 0-diff (`--mask-geo`) on every page in all 7 folders |
-| Header & footer | Astra header, mega menu, offer banner, footer columns, sticky CTA | every page | ⏳ After the families |
+| Header & footer | Astra header, mega menu, offer banner, footer columns, sticky CTA | every page | 🔄 Porting (falls back to WordPress's own header/footer HTML) |
 
 Known inherent differences (documented, not bugs): server-rendered prices show the
 folder's default currency where live's cached HTML shows whichever visitor created
