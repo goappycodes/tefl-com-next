@@ -30,23 +30,20 @@ node scripts/domdiff.mjs /blog/what-is-edtpa/   # sanity check: 0 differing
 
 ### Current state
 
-- **Staging** serves every URL. Native React so far: blog posts, destinations
-  (teach-abroad guides, guides, country, jobs, support, placements, FAQ), promos
-  (sale and campaign landing pages), overviews (course overviews, recommender,
-  shop, TEFL Plus, trial, gift vouchers), home (homepages incl. `/`, internships,
-  screening forms), courses (all 28 course pages, four designs). Everything
-  else is the passthrough render (WordPress HTML) until its family is pushed.
+- **Phase 2 (native React) is complete.** Every template with live URLs renders
+  natively on staging — blog, destinations, courses, overviews, home, promos,
+  pages (default template, 18 one-offs, blog index, archives, search, 404) — and so
+  do the theme's header and footer (`components/chrome/`). Each is verified 0-diff
+  against live with `scripts/domdiff.mjs --mask-geo` across the seven folders; per-family
+  numbers are in the README "Phase 2 progress" table, details in `docs/NATIVE-TEMPLATES.md`.
+- **Still passthrough on purpose** (WordPress HTML, also 0-diff): pages whose markup
+  can't be built as a React tree (`tesol-tefl-courses-v2`, `/callback/`, hire-wire pages
+  with an unbalanced content slot, a few default pages with sidebars/AutomateWoo
+  shortcodes), endpoint bail-outs (e.g. a tab title containing `"`), and
+  `black-friday-landing-page-2026.php` (built on the live server, not ported yet).
 - **WordPress → staging cache purges are live** (`TEFL_ISR_BASE_URL` set; see "Done").
-- **Phase 2 (native React)**: progress table in the README ("Phase 2 progress").
-  Pages part 1 is native too (default page template, blog index, categories,
-  tags, search, 404); the 18 one-off page templates are being ported.
-  The theme's header and footer are React as well (components/chrome/), with a
-  per-region fallback to WordPress HTML. A family lands in git only once it
-  shows 0 differences against live; until then its files exist only in the
-  working copy of the machine doing the port, and its endpoint file may
-  already be on the server in `headless/native/` (REST-only and inert until the
-  Next side calls it). Compare `ssh … ls ~/teflinstitute.com/wp-content/themes/teflinstitute/headless/native/`
-  with `wordpress/headless/native/` here to see what's deployed but not committed.
+- Everything deployed to the server's `headless/native/` is in `wordpress/headless/native/`
+  here (same file set, same contents as of the last push).
 
 ### Watch out for
 
@@ -62,17 +59,18 @@ node scripts/domdiff.mjs /blog/what-is-edtpa/   # sanity check: 0 differing
 
 ### How to continue
 
-1. Port a template (or finish a family): follow `docs/NATIVE-TEMPLATES.md`.
-   Families and their templates are listed in the README progress table; the
-   registry entry goes in `lib/native/families/<family>.tsx`.
-2. Verify with `node scripts/domdiff.mjs <paths…>`: 0 differing across the US
-   root and the six geo folders.
-3. Commit only verified files, update the README progress table and this
-   section, check the committed tree builds, push. (Don't run `next build` in
-   a checkout whose dev server is running: they share `.next`.)
-4. After the families: port the header & footer (theme's own markup only;
-   `wp_head`/`wp_footer` plugin output stays WordPress HTML), then the P1/P2
-   items under "What's left".
+1. **Theme changes:** when someone edits a ported template (or the header/footer
+   code) on WordPress, re-port the change in the matching `components/…` + `native/…`
+   files and re-run domdiff on that template's pages. Until then the page shows the
+   old native markup — except the header/footer, which fall back to WordPress HTML
+   automatically on a theme-source fingerprint change (`TEFL_NATIVE_CHROME_SOURCE`).
+   New templates: follow `docs/NATIVE-TEMPLATES.md`.
+2. Verify with `node scripts/domdiff.mjs --mask-geo <paths…>` (≤10 per run): 0 differing
+   across the US root and the six geo folders.
+3. Commit only verified files, update the README progress table and this section,
+   `bash scripts/buildcheck.sh` (builds the committed tree in a clean worktree), push.
+4. Next: the P1/P2 items under "What's left" (parity crawl, forms and checkout E2E,
+   410s, page weight, the client-rendered 404, the Cloudflare cutover Worker).
 
 ## How this differs from TEFL.ie
 
@@ -81,12 +79,15 @@ to re-implement each WordPress integration by hand: geo pricing calls, CF7 forms
 reCAPTCHA, the phone field, deposits, the header cart, trackers, consent, chat. Most
 of its "known gaps" come from that re-implementation.
 
-teflinstitute.com is in **phase 1: passthrough**. Every page is WordPress's own HTML
-(`tefl/v1/render`), and the theme and plugin scripts run unchanged in the browser
-(`WpScripts`). So geo pricing, forms, consent, chat, reviews and timers are the live
-site's own code. The work is making the edges right: query strings, cookies, the
-WordPress hand-over, caching, and the cutover. Native React templates (phase 2) can
-reuse TEFL.ie's components and lessons later.
+teflinstitute.com went the other way. **Phase 1** served every page as WordPress's
+own HTML (`tefl/v1/render`), with the theme and plugin scripts running unchanged in
+the browser (`WpScripts`). **Phase 2** (done) rebuilt every template, and the header
+and footer, as React that reproduces the theme's markup exactly — verified by DOM
+diff against live — while plugin output (`wp_head`/`wp_footer`) stays WordPress HTML
+and the theme's own scripts keep driving geo pricing, forms, consent, chat, reviews,
+timers and sliders. So none of TEFL.ie's re-implementation gaps apply: those
+integrations are still the live site's own code. What's left is the edges: parity QA,
+caching, the WordPress hand-over and the cutover.
 
 ## Done
 

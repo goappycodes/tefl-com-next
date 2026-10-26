@@ -24,7 +24,7 @@ function tefl_native_page_blog($id, $ctx) {
     }
     tefl_native_pages_front_request($ctx);
     // The template never starts the loop (CF7 unit tags then carry no post id).
-    $GLOBALS['wp_query']->in_the_loop = false;
+    tefl_native_pages_template_context();
 
     $href = $ctx['href'];
     $raw  = function ($v) {

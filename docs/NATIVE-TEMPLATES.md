@@ -247,3 +247,26 @@ the data (no `#masthead`/`#colophon`, a different offer-banner count). Plugin ou
 - Cost: one more PHP request per page render.
 - Verify with `--selector "#page"` (header + content slot + footer), `#masthead`,
   `#colophon`, `.header-offer-banner`, `.footer-legal-holder`.
+
+### Pages — one-off templates (`components/pages/<name>/`, registered in `components/pages/families/group1–4.tsx`)
+
+Body class `page-template-<file>-php`, endpoint = file name, no `replaces`:
+`about`, `meet-the-team`, `page-contact`, `page-toc` (3 pages), `page-sitemap`,
+`page-callback` (native on `/vip-black-friday-deals/` only; `/callback/` closes one
+`</div>` too many and stays passthrough), `page-resources`, `webinars`, `tefl-podcast`
+(`?pg=` paging), `tefl-scholarships`, `page-elt`, `page-affiliate`, `page-teo`,
+`page-teo-new`, `teach-english-online`, `ti-esl-franchise`, `ti-tashkent-template`,
+`ti-tefl-for-schools-v3`.
+- Rich-text values the templates echo inside their own `<p>`/`<hN>` are built as inner
+  HTML (`el()` in `components/pages/attrs.ts`) so the browser splits the markup exactly
+  as on live and React never hydrates the split.
+- `page-teo-new` and `ti-tefl-for-schools-v3` are line-by-line HTML-string ports;
+  inline `<script>` blocks the templates write are emitted verbatim (deferred).
+- `_pages.php` gives templates that never start the main loop the "after
+  `get_header()`, before the loop" state (CF7 numbering, image `loading` attributes,
+  Boxzilla's single `fetchpriority="high"`), restores WCPBC's `loading` price wrapper,
+  and lets an endpoint bail out to the passthrough on a value it can't render.
+- `ti_online_tefl_job_feed()` (fetched by page-teo / page-teo-new but never printed) is skipped.
+- Quirks kept: the `calss` typo, a mailto link with no address, a never-printed button,
+  the TOC script that throws on live too (no `.entry-content`), teo-new's carried-over
+  countdown and price variables.

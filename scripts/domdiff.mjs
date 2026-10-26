@@ -65,7 +65,7 @@ const maskGeoText = (t) =>
 const maskVolatile = (v) =>
   v
     .replace(/quantity_[0-9a-f]{8,}/gi, "quantity_[id]")
-    .replace(/\baffwp-login-form-\d+\b/g, "affwp-login-form-[id]")
+    .replace(/\baffwp-(login|register)-form-\d+\b/g, "affwp-$1-form-[id]")
     .replace(/\b\d{10}--\d{10}\b/g, "[now]--[expiry]")
     .replace(/\b[0-9a-f]{13}\b/g, "[uniqid]");
 const maskLd = (v) =>
@@ -83,7 +83,7 @@ if (!paths.length) {
 const ORIGINS = new RegExp(`^(${[LIVE, BASE].map((o) => o.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`);
 const normUrl = (u) => u.replace(ORIGINS, "") || "/";
 
-const ENTITIES = { nbsp: " ", rarr: "→", larr: "←", middot: "·", minus: "−", ndash: "–", mdash: "—", euro: "€", pound: "£", hellip: "…", rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“", times: "×", copy: "©", reg: "®", trade: "™", quot: '"', apos: "'", lt: "<", gt: ">", amp: "&" };
+const ENTITIES = { nbsp: " ", rarr: "→", larr: "←", laquo: "«", raquo: "»", middot: "·", minus: "−", ndash: "–", mdash: "—", euro: "€", pound: "£", hellip: "…", rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“", times: "×", copy: "©", reg: "®", trade: "™", quot: '"', apos: "'", lt: "<", gt: ">", amp: "&" };
 const decode = (s) =>
   s
     .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n))
@@ -163,7 +163,8 @@ function serialise(rootEl, pagePath) {
         else if (k === "srcset") v = v.split(",").map((c) => c.trim().split(/\s+/).map((p, i) => (i ? p : normUrl(p))).join(" ")).join(", ");
         else if (URL_ATTRS.has(k)) v = normUrl(v);
         // GTM4WP's hidden product JSON carries the geo price too.
-        const geoValue = k === "value" && n.getAttribute("name") === "gtm4wp_product_data";
+        // …and per-request nonces (live serves a cached copy of the form).
+        const geoValue = k === "value" && ["gtm4wp_product_data", "affwp_register_nonce"].includes(n.getAttribute("name") || "");
         if (MASK_GEO) v = GEO_ATTRS.has(k) || geoValue ? "[geo]" : maskGeoText(maskVolatile(v));
         return `${k}=${v}`;
       })

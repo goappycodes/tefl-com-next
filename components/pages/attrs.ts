@@ -49,3 +49,28 @@ export function css(style: string): CSSProperties {
 export function html(h: string | null | undefined) {
   return { __html: h ?? "" };
 }
+
+const escAttr = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/**
+ * One element as an HTML string, for a container whose children include raw
+ * values the template echoes into elements that can't hold them (a WYSIWYG
+ * value with <p>/<h3> inside the template's own <p>): the container is then
+ * rendered with dangerouslySetInnerHTML built from these pieces, so the
+ * browser splits the markup exactly as it does on live and React never has to
+ * hydrate the split. `inner` is raw HTML.
+ */
+export function el(tag: string, attrs: Record<string, string | null | undefined> | null, inner = ""): string {
+  const a = Object.entries(attrs ?? {})
+    .filter(([, v]) => v !== null && v !== undefined)
+    .map(([k, v]) => ` ${k}="${escAttr(v as string)}"`)
+    .join("");
+  return VOID_TAGS.has(tag) ? `<${tag}${a}>` : `<${tag}${a}>${inner}</${tag}>`;
+}
+
+const VOID_TAGS = new Set(["img", "br", "hr", "input", "meta", "link", "source", "wbr"]);
+
+/** Text for an HTML string (escaped). */
+export function text(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
