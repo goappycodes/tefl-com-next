@@ -204,9 +204,16 @@ function lineDiff(a, b) {
   return out;
 }
 
-async function get(url) {
-  const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (tefl domdiff)" }, redirect: "manual" });
-  return { status: res.status, doc: parse(balance(await res.text()), { comment: false, blockTextElements: { script: true, style: true, noscript: true, pre: true } }) };
+async function get(url, attempt = 1) {
+  try {
+    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (tefl domdiff)" }, redirect: "manual" });
+    return { status: res.status, doc: parse(balance(await res.text()), { comment: false, blockTextElements: { script: true, style: true, noscript: true, pre: true } }) };
+  } catch (e) {
+    // A dropped connection (ECONNRESET) shouldn't end a sweep: retry once after a pause.
+    if (attempt >= 2) throw e;
+    await new Promise((r) => setTimeout(r, 5000));
+    return get(url, attempt + 1);
+  }
 }
 
 let failed = 0;
