@@ -174,3 +174,19 @@ variation form, screening logic and the geo price refresh).
 - `components/home/screening-script.ts` and `internship-ri.ts` are generated from the theme
   templates' inline scripts — regenerate them if those templates change.
 - The front page's CF7 instance counter is `o2` in a fresh render; live's cached `/` shows `o3`.
+
+### Courses (`components/courses/`)
+
+| Template | Body class | Endpoint |
+|---|---|---|
+| `single-course.php` wrapper → `single-course-template-new2023.php` (`is_new_design`, 20 courses), `single-course-template.php` (legacy, 5), `single-course-template-2024.php` (`is_2024_design`, 1) | `single-course`, not `ti-c26-page` | `course` (`native/course.php` prints the wrapper's JSON-LD and dispatches to `course-new2023.php` / `course-legacy.php` / `course-2024.php`) |
+| `course-page-2026.php` (sixth-form course) | `single-course` + `ti-c26-page` | `course-2026` |
+- No `replaces`: the theme JS drives prices, deposits ("Pay in N" adds `&deposit`),
+  timetables, sliders, Klarna and forms. Enrol links stay absolute `?addtimetocart` URLs.
+- Passthrough on purpose: legacy virtual courses and deposit plans, new2023 non-numeric
+  deposit plans / Klarna without a numeric price, 2024 virtual courses. `single-course_location`
+  (one post, a virtual legacy course) has no entry and renders as passthrough.
+- Render-time values that differ from live's cache: JSON-LD `validFrom`, the 2024 page's
+  "N students enrolled in the last 7 days".
+- Server-side prices follow wherever the endpoint request geolocates (Vercel's region
+  in production) until the theme's AJAX re-prices for the visitor — as live's cache does.
