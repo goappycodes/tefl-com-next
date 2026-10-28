@@ -47,6 +47,9 @@ node scripts/domdiff.mjs /blog/what-is-edtpa/   # sanity check: 0 differing
 
 ### Watch out for
 
+- **Noindex until launch.** Every page on every host is `noindex, nofollow` (header + meta
+  robots) until `ALLOW_INDEXING=1` is set in Vercel Production at the cutover (`lib/site.ts`).
+  Don't set it anywhere else, and don't forget it at launch.
 - **MalCare firewall.** Heavy verification traffic from one IP gets it blacklisted
   (every PHP request then 403s with "Blocked because of Malicious Activities").
   Happened 2026-10-26 to `49.47.154.137`; fixed by whitelisting it in the MalCare
@@ -255,6 +258,10 @@ fetch reaches WordPress through the Worker's `/wp-json/` rule.
   - Worker route live
   - `TEFL_ISR_BASE_URL=https://teflinstitute.com`
   - `NEXT_PUBLIC_ENABLE_TRACKING=1` in Vercel Production only
+  - **`ALLOW_INDEXING=1` in Vercel Production only** (until then every page is
+    noindex on every host — forgetting it keeps the live site out of Google);
+    then check `curl -sI https://teflinstitute.com/ | grep -i x-robots` prints nothing
+    and the page's meta robots is Yoast's again
   - GSC sitemap resubmit
   - 404 and crawl monitoring
   - a real payment

@@ -1,4 +1,5 @@
 import type { RenderedPage } from "@/lib/render";
+import { INDEXING_ALLOWED, NOINDEX } from "@/lib/site";
 
 /**
  * The live page's SEO <head>, reproduced tag for tag: <title>, every
@@ -11,20 +12,29 @@ import type { RenderedPage } from "@/lib/render";
  */
 const SKIP_META = new Set(["viewport", "charset"]);
 
+/**
+ * Crawler directives. Until launch (INDEXING_ALLOWED, lib/site.ts) every one of
+ * them says noindex — Yoast's "index, follow" included — and a robots meta is
+ * added if the page has none, so the HTML itself carries the noindex as well as
+ * middleware's X-Robots-Tag header.
+ */
+const ROBOTS_META = new Set(["robots", "googlebot", "bingbot"]);
+
 export default function WpHead({ page }: { page: RenderedPage | null }) {
   const seo = page?.seo;
+  const meta = (seo?.meta ?? []).filter((m) => !(m.name && SKIP_META.has(m.name.toLowerCase())));
+  const isRobots = (name?: string) => !!name && ROBOTS_META.has(name.toLowerCase());
   return (
     <>
       {seo?.title ? <title>{seo.title}</title> : null}
-      {seo?.meta
-        .filter((m) => !(m.name && SKIP_META.has(m.name.toLowerCase())))
-        .map((m, i) =>
-          m.property ? (
-            <meta key={`p${i}`} property={m.property} content={m.content} />
-          ) : (
-            <meta key={`n${i}`} name={m.name} content={m.content} />
-          ),
-        )}
+      {!INDEXING_ALLOWED && !meta.some((m) => isRobots(m.name)) ? <meta name="robots" content={NOINDEX} /> : null}
+      {meta.map((m, i) =>
+        m.property ? (
+          <meta key={`p${i}`} property={m.property} content={m.content} />
+        ) : (
+          <meta key={`n${i}`} name={m.name} content={!INDEXING_ALLOWED && isRobots(m.name) ? NOINDEX : m.content} />
+        ),
+      )}
       {seo?.links.map((l, i) => (
         <link key={`l${i}`} rel={l.rel} href={l.href} {...(l.hreflang ? { hrefLang: l.hreflang } : {})} />
       ))}

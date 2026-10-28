@@ -137,7 +137,7 @@ app/api/sitemap/        Yoast sitemap + XSL proxy (rewrites in next.config.mjs)
 app/robots.txt/         WordPress robots.txt with front-origin sitemap URLs
 components/             WpHead, WpPage, WpShell, WpScripts; blog/ (native blog post)
 lib/                    wp.ts (origin, fetch, hand-over), render.ts, shell.ts, post.ts, site.ts, countries.ts
-middleware.ts           WP hand-over, search rewrite, noindex on non-prod hosts
+middleware.ts           WP hand-over, search rewrite, noindex (until launch; non-prod hosts after)
 public/                 favicons, verification files, llms.txt, self-hosted icon fonts
 scripts/warm-cache.mjs  post-deploy ISR warmer
 wordpress/              WP-side code (deployed by hand — see below)
@@ -163,7 +163,13 @@ server (`forge@134.209.25.72`, `~/teflinstitute.com`).
 ## Environment
 
 See `.env.example`: `NEXT_PUBLIC_WP_ORIGIN`, `NEXT_PUBLIC_SITE_ORIGIN`,
-`NEXT_PUBLIC_ENABLE_TRACKING`, `ISRSECRET`.
+`NEXT_PUBLIC_ENABLE_TRACKING`, `ALLOW_INDEXING`, `ISRSECRET`.
+
+**Search engines: noindex until launch.** Unless `ALLOW_INDEXING=1` (set in Vercel
+Production only, at the cutover), every page on every host is `noindex, nofollow`,
+both as an `X-Robots-Tag` header (`middleware.ts`) and as the HTML meta robots
+(`components/WpHead.tsx`, overriding Yoast's). After launch only teflinstitute.com
+is indexable; staging and previews keep the header.
 
 ## Infra follow-ups
 

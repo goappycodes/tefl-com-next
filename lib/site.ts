@@ -25,5 +25,17 @@ export function siteUrl(path = "/"): string {
   return `${SITE_ORIGIN}${path.startsWith("/") ? "" : "/"}${path}`;
 }
 
-/** Hosts allowed in search engines. Everything else (staging, previews) gets noindex. */
+/**
+ * Launch switch for search engines. Until `ALLOW_INDEXING=1` is set (Vercel
+ * Production only, at the cutover), every page on every host is noindex —
+ * X-Robots-Tag from middleware AND the HTML's meta robots (components/WpHead.tsx)
+ * — so attaching teflinstitute.com to the project early can't index anything.
+ * Forgetting it at launch noindexes the live site: it's on the cutover checklist.
+ */
+export const INDEXING_ALLOWED = process.env.ALLOW_INDEXING === "1";
+
+/** Hosts allowed in search engines once INDEXING_ALLOWED. Everything else (staging, previews) gets noindex. */
 export const INDEXABLE_HOSTS = new Set(["teflinstitute.com", "www.teflinstitute.com"]);
+
+/** The robots directive for non-indexable responses. */
+export const NOINDEX = "noindex, nofollow";

@@ -11,7 +11,7 @@ import {
   sharedCookieDomain,
 } from "@/lib/attribution";
 import { encodeQuerySegment, QUERY_SEGMENT, renderQuery } from "@/lib/render";
-import { INDEXABLE_HOSTS } from "@/lib/site";
+import { INDEXABLE_HOSTS, INDEXING_ALLOWED, NOINDEX } from "@/lib/site";
 import { WP_ORIGIN, WP_OWNED_PATH, WP_OWNED_QUERY } from "@/lib/wp";
 
 /**
@@ -34,9 +34,9 @@ import { WP_ORIGIN, WP_OWNED_PATH, WP_OWNED_QUERY } from "@/lib/wp";
  *    first-party cookies for the hand-over links, and `?awc=` / `?source=` get
  *    the same cookies the Awin plugin would have set in PHP.
  *
- * 4. Noindex everything that isn't the production domain (staging, Vercel
- *    previews) with X-Robots-Tag — gated by HOSTNAME, so it can never deindex
- *    the live site.
+ * 4. Noindex with X-Robots-Tag until launch (`ALLOW_INDEXING=1`, lib/site.ts),
+ *    and after it everything that isn't the production domain (staging, Vercel
+ *    previews).
  */
 const WP_HOST = new URL(WP_ORIGIN).host;
 const COUNTRY_PREFIX = /^\/(gb|za|nl|ca|it|fr)(?=\/|$)/;
@@ -67,7 +67,7 @@ function captureAttribution(req: NextRequest, res: NextResponse, host: string): 
 }
 
 function finish(req: NextRequest, res: NextResponse, host: string): NextResponse {
-  if (!INDEXABLE_HOSTS.has(host)) res.headers.set("X-Robots-Tag", "noindex, nofollow");
+  if (!INDEXING_ALLOWED || !INDEXABLE_HOSTS.has(host)) res.headers.set("X-Robots-Tag", NOINDEX);
   return captureAttribution(req, res, host);
 }
 
